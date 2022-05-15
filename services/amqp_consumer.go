@@ -105,7 +105,7 @@ func (rabbitMQConsumer *RabbitMQConsumer) AcceptMessages(ctx context.Context) er
 
 	go func() {
 		for message := range messages {
-			HandleMessageReceived(string(message.Body))
+			handleMessageReceived(string(message.Body))
 		}
 	}()
 
@@ -113,7 +113,7 @@ func (rabbitMQConsumer *RabbitMQConsumer) AcceptMessages(ctx context.Context) er
 	return nil
 }
 
-func HandleMessageReceived(message string) {
+func handleMessageReceived(message string) {
 
 	log.Printf("RECEIVED MESSAGE: %s", message)
 }
