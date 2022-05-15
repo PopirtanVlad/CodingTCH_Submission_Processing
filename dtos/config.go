@@ -3,6 +3,7 @@ package dtos
 type ServiceConfig struct {
 	RabbitMQConfig
 	AWSConfig
+	PostgresSQLConfig
 }
 
 type RabbitMQConfig struct {
@@ -16,4 +17,13 @@ type RabbitMQConfig struct {
 type AWSConfig struct {
 	AWSRegion     string
 	AWSBucketName string
+}
+
+type PostgresSQLConfig struct {
+	PostgresDialect  string
+	PostgresHost     string
+	PostgresDBport   int
+	PostgresUser     string
+	PostgresName     string
+	PostgresPassword string
 }

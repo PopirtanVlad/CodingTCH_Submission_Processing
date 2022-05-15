@@ -27,11 +27,11 @@ type RabbitMQConsumer struct {
 
 func NewRabbitMQConsumer(rabbbitMQConf *RabbitMQConfig) *RabbitMQConsumer {
 	return &RabbitMQConsumer{
-		username:  rabbbitMQConf.Username,  //username
-		password:  rabbbitMQConf.Password,  //password
-		hostName:  rabbbitMQConf.HostName,  //host
-		port:      rabbbitMQConf.Port,      //port
-		queueName: rabbbitMQConf.QueueName, //port
+		username:  rabbbitMQConf.Username,
+		password:  rabbbitMQConf.Password,
+		hostName:  rabbbitMQConf.HostName,
+		port:      rabbbitMQConf.Port,
+		queueName: rabbbitMQConf.QueueName,
 	}
 }
 
