@@ -1,4 +1,4 @@
-package main
+package executions
 
 import (
 	"Licenta_Processing_Service/custom_errors"
@@ -34,7 +34,7 @@ func NewExecutionRunner() *ExecutionRunner {
 //	}
 //}
 
-func (executionRunner *ExecutionRunner) runSolution(cmdConfig dtos.CommandConfig) (*dtos.SolutionResult, error) {
+func (executionRunner *ExecutionRunner) RunCommand(cmdConfig dtos.CommandConfig) (*dtos.SolutionResult, error) {
 
 	cmd := exec.Command(cmdConfig.CommandName, cmdConfig.CommandArgs...)
 

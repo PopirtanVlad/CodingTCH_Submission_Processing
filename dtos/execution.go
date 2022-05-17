@@ -14,6 +14,12 @@ type SolutionResult struct {
 	Error         error
 }
 
+type SolutionRequest struct {
+	File     io.ReadCloser
+	Solution Submission
+	Tests    []TestCase
+}
+
 type CommandConfig struct {
 	CommandName string
 	CommandArgs []string
