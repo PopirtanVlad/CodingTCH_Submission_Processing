@@ -1,13 +1,23 @@
 package dtos
 
 import (
-	"github.com/satori/go.uuid"
+	"bytes"
+	"io"
 	"time"
 )
 
 type SolutionResult struct {
-	solutionID     uuid.UUID
-	solutionStatus bool
-	executionTime  time.Duration
-	memoryUsage    int
+	ExecutionTime time.Duration
+	MemoryUsage   uint64
+	StdErr        *bytes.Buffer
+	ExitCode      int
+	Error         error
+}
+
+type CommandConfig struct {
+	CommandName string
+	CommandArgs []string
+	TimeOut     time.Duration
+	StdIn       io.Reader
+	StdOut      io.Writer
 }

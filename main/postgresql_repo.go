@@ -25,7 +25,7 @@ func main() {
 	dbURI := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", postgresConf.PostgresHost, postgresConf.PostgresDBport, postgresConf.PostgresUser, postgresConf.PostgresPassword, postgresConf.PostgresName)
 	println(dbURI)
 	//Opening connection to db
-	db, err = gorm.Open(postgres.Open(dbURI), &gorm.Config{})
+	db, err = gorm.Open(postgres.Open("postgres://sihxqdml:9jAkXnsUpiG5XVorCCPhrhZ3xETMvgKb@tyke.db.elephantsql.com/sihxqdml"), &gorm.Config{})
 
 	if err != nil {
 		panic(err)
