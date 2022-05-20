@@ -9,11 +9,11 @@ import (
 )
 
 var FILE_ID = "123"
-var FILE_NAME = "Solution.java"
+var FILE_NAME = "Solution.c"
 
-func main() {
-	compileSolution("Solution.java")
-}
+//func main() {
+//	compileSolution("Solution.c")
+//}
 
 type JavaSubmissionRunner struct {
 	ExecutionRunner executions.ExecutionRunner
@@ -22,11 +22,12 @@ type JavaSubmissionRunner struct {
 func NewJavaSubmissionRunner() *JavaSubmissionRunner {
 	return &JavaSubmissionRunner{}
 }
+=
 
 func (javaSubmissionRunner *JavaSubmissionRunner) RunSolution(solutionReq dtos.SolutionRequest) ([]*dtos.TestResult, error) {
 	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
 
-	_, err = compileSolution("Solution.java")
+	_, err = javaSubmissionRunner.compileSolution("Solution.c")
 
 	if err != nil {
 		return nil, err
@@ -49,7 +50,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunSolution(solutionReq dtos.S
 }
 
 func runTest() (*dtos.TestResult, error) {
-
+	return nil,nil
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos.Submission, stDin io.ReadCloser, stdOut io.WriteCloser) (*dtos.SolutionResult, error) {
@@ -73,7 +74,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos
 	return javaSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig)
 }
 
-func compileSolution(fileName string) (*dtos.SolutionResult, error) {
+func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(fileName string) (*dtos.SolutionResult, error) {
 	cmdConfig := dtos.CommandConfig{
 		CommandName: "javac",
 		CommandArgs: []string{fileName},
