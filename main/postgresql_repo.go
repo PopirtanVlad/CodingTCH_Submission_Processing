@@ -3,12 +3,25 @@ package main
 import (
 	"Licenta_Processing_Service/dtos"
 	"fmt"
+	uuid "github.com/satori/go.uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var db *gorm.DB
 var err error
+
+type PostgresSQLRepo struct {
+	db *gorm.DB
+}
+
+func NewPostgreSQLRepo() *PostgresSQLRepo {
+	return &PostgresSQLRepo{}
+}
+
+func (postgresSQLRepo *PostgresSQLRepo) getSubmission(db *gorm.DB, submissionId uuid.UUID) dtos.Submission {
+	//return db.Find(&dtos.Submission, 10)
+}
 
 func main() {
 	//Loading env variables
@@ -25,7 +38,7 @@ func main() {
 	dbURI := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", postgresConf.PostgresHost, postgresConf.PostgresDBport, postgresConf.PostgresUser, postgresConf.PostgresPassword, postgresConf.PostgresName)
 	println(dbURI)
 	//Opening connection to db
-	db, err = gorm.Open(postgres.Open("postgres://sihxqdml:9jAkXnsUpiG5XVorCCPhrhZ3xETMvgKb@tyke.db.elephantsql.com/sihxqdml"), &gorm.Config{})
+	db, err = gorm.Open(postgres.Open(dbURI), &gorm.Config{})
 
 	if err != nil {
 		panic(err)

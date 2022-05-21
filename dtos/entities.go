@@ -14,26 +14,25 @@ type User struct {
 	UserEmail      string
 	Enabled        bool
 	UserPassword   string
-	Provider       string
 	ProviderUserId string
 }
 
 type Problem struct {
 	gorm.Model
 
-	ProblemID         uuid.UUID
+	Id                uuid.UUID
 	ProblemDifficulty ProblemDifficulty
 	ProblemStatement  string
 	ProblemTitle      string
-	ProblemProposerID uuid.UUID
 	TimeLimit         time.Duration
 	MemoryLimit       uint64
-	TestCases         []TestCase
+	TestCases         []TestCase `gorm:"foreignKey:Id"`
 }
 
 type TestCase struct {
 	gorm.Model
 
+	Id                     uuid.UUID
 	InputFileName          string
 	ExpectedOutputFileName string
 }
@@ -41,16 +40,16 @@ type TestCase struct {
 type Submission struct {
 	gorm.Model
 
-	SubmissionID        uuid.UUID
-	ProblemID           uuid.UUID
-	UserId              uuid.UUID
+	Id                  uuid.UUID
+	ProblemID           uuid.UUID `gorm:"referecnes:problem_id"`
+	UserId              uint64
 	ProgrammingLanguage ProgrammingLanguage
 	UploadTime          time.Time
-	TestResults         []*TestResult
+	TestResults         []*TestResult `gorm:"foreignKey:Id"`
 }
 
 type TestResult struct {
-	TestName     string
+	Id           uuid.UUID
 	Correct      bool
 	TimeElapsed  time.Duration
 	MemoryUsed   uint64
