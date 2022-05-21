@@ -18,8 +18,6 @@ type User struct {
 }
 
 type Problem struct {
-	gorm.Model
-
 	Id                uuid.UUID
 	ProblemDifficulty ProblemDifficulty
 	ProblemStatement  string
@@ -30,22 +28,18 @@ type Problem struct {
 }
 
 type TestCase struct {
-	gorm.Model
-
 	Id                     uuid.UUID
 	InputFileName          string
 	ExpectedOutputFileName string
 }
 
 type Submission struct {
-	gorm.Model
-
 	Id                  uuid.UUID
-	ProblemID           uuid.UUID `gorm:"referecnes:problem_id"`
+	ProblemID           uuid.UUID `gorm:"references:problem_id"`
 	UserId              uint64
 	ProgrammingLanguage ProgrammingLanguage
-	UploadTime          time.Time
-	TestResults         []*TestResult `gorm:"foreignKey:Id"`
+	//UploadTime          time.Time
+	TestResults []*TestResult `gorm:"foreignKey:Id"`
 }
 
 type TestResult struct {

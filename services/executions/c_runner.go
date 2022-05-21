@@ -1,8 +1,7 @@
-package main
+package executions
 
 import (
 	"Licenta_Processing_Service/dtos"
-	"Licenta_Processing_Service/services/executions"
 	"fmt"
 	"io/ioutil"
 )
@@ -29,5 +28,5 @@ func (cplusplusRunner *CplusplusRunner) compileSolution(fileName string) (*dtos.
 		StdOut:      ioutil.Discard,
 	}
 
-	return executions.NewExecutionRunner().RunCommand(cmdConfig)
+	return NewExecutionRunner().RunCommand(cmdConfig)
 }

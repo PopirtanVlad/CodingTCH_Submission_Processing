@@ -1,4 +1,4 @@
-package main
+package repositories
 
 import (
 	"fmt"
@@ -12,19 +12,19 @@ type FilesRepository struct {
 }
 
 func NewFileRepository(baseDirectory string) (*FilesRepository, error) {
-	if err := os.RemoveAll(baseDirectory); err != nil {
-		return nil, err
-	}
+	//if err := os.RemoveAll(baseDirectory); err != nil {
+	//	return nil, err
+	//}
 
-	if err := os.Mkdir(baseDirectory, os.ModePerm); err != nil {
-		return nil, err
-	}
+	//if err := os.Mkdir(baseDirectory, os.ModePerm); err != nil {
+	//	return nil, err
+	//}
 	return &FilesRepository{
 		BaseDirectory: baseDirectory,
 	}, nil
 }
 
-func (fileRepository *FilesRepository) getFilePath(problemdir, filename string) string {
+func (fileRepository *FilesRepository) GetFilePath(problemdir, filename string) string {
 	switch filepath.Ext(filename) {
 	case ".in":
 		return fmt.Sprintf("%s/%s/inputs/%s\n", fileRepository.BaseDirectory, problemdir, filename)
@@ -35,13 +35,13 @@ func (fileRepository *FilesRepository) getFilePath(problemdir, filename string) 
 	}
 }
 
-func (fileRepository *FilesRepository) openFile(problemDir, fileName string) (*os.File, error) {
-	filePath := fileRepository.getFilePath(problemDir, fileName)
+func (fileRepository *FilesRepository) OpenFile(problemDir, fileName string) (*os.File, error) {
+	filePath := fileRepository.GetFilePath(problemDir, fileName)
 	return os.Open(filePath)
 }
 
-func (fileRepository *FilesRepository) saveFile(problemDir, fileName string, sourceFile io.Reader) error {
-	filepath := fmt.Sprintf("%s%s%s", fileRepository.BaseDirectory, problemDir, fileName)
+func (fileRepository *FilesRepository) SaveFile(problemDir, fileName string, sourceFile io.Reader) error {
+	filepath := fmt.Sprintf("%s/%s/%s", fileRepository.BaseDirectory, problemDir, fileName)
 	destFile, err := os.Create(filepath)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func (fileRepository *FilesRepository) saveFile(problemDir, fileName string, sou
 	//}
 }
 
-func (fileRepository *FilesRepository) deleteFile(problemDir, fileName string) error {
+func (fileRepository *FilesRepository) DeleteFile(problemDir, fileName string) error {
 	filepath := fmt.Sprintf("%s/%s/%s", fileRepository.BaseDirectory, problemDir, fileName)
 	return os.Remove(filepath)
 	//if err != nil {
@@ -71,11 +71,11 @@ func (fileRepository *FilesRepository) deleteFile(problemDir, fileName string) e
 
 func main() {
 	repo, _ := NewFileRepository("Florin")
-	file, err := repo.openFile("123", "Solution.c")
+	file, err := repo.OpenFile("123", "Solution.c")
 
 	if err != nil {
 		fmt.Println("first", err)
 	}
-	err = repo.saveFile("123", "fisiernou.c", file)
+	err = repo.SaveFile("123", "fisiernou.c", file)
 	fmt.Println(err)
 }

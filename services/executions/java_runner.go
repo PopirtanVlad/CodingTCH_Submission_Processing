@@ -1,40 +1,50 @@
-package main
+package executions
 
 import (
 	"Licenta_Processing_Service/dtos"
-	"Licenta_Processing_Service/services/executions"
+	"Licenta_Processing_Service/repositories"
 	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 )
 
-var FILE_ID = "123"
-var FILE_NAME = "Solution.c"
-
-//func main() {
-//	compileSolution("Solution.c")
-//}
+var FILE_ID = "java_test"
+var FILE_NAME = "Solution.java"
 
 type JavaSubmissionRunner struct {
-	ExecutionRunner executions.ExecutionRunner
+	ExecutionRunner ExecutionRunner
+	FilesRepository *repositories.FilesRepository
 }
 
-func NewJavaSubmissionRunner() *JavaSubmissionRunner {
-	return &JavaSubmissionRunner{}
+func NewJavaSubmissionRunner(repository *repositories.FilesRepository) *JavaSubmissionRunner {
+	return &JavaSubmissionRunner{
+		ExecutionRunner: *NewExecutionRunner(),
+		FilesRepository: repository,
+	}
 }
-=
 
-func (javaSubmissionRunner *JavaSubmissionRunner) RunSolution(solutionReq dtos.SolutionRequest) ([]*dtos.TestResult, error) {
+func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq dtos.SolutionRequest) ([]*dtos.TestResult, error) {
 	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
-
-	_, err = javaSubmissionRunner.compileSolution("Solution.c")
+	err := javaSubmissionRunner.FilesRepository.SaveFile(solutionReq.Solution.ProblemID.String(), "Solution.java", solutionReq.File)
 
 	if err != nil {
 		return nil, err
 	}
 
+	defer func() {
+		err := javaSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Solution.ProblemID.String(), "Solution.java")
+		if err != nil {
+			logrus.WithError(err).Warnf("Could not delete file")
+		}
+	}()
+
+	_, err = javaSubmissionRunner.compileSolution("Solution.java")
+	if err != nil {
+		return nil, err
+	}
+
 	var results []*dtos.TestResult
-	for _, test := range solutionReq.Tests {
+	for _, _ = range solutionReq.Tests {
 
 		result, err := runTest()
 		if err != nil {
@@ -50,7 +60,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunSolution(solutionReq dtos.S
 }
 
 func runTest() (*dtos.TestResult, error) {
-	return nil,nil
+	return nil, nil
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos.Submission, stDin io.ReadCloser, stdOut io.WriteCloser) (*dtos.SolutionResult, error) {
@@ -58,15 +68,13 @@ func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos
 	defer stdOut.Close()
 	defer stDin.Close()
 
-	//Get problem dir path err = os.Chdir(submission.SubmissionID)
-
-	if err != nil {
-		return nil, err
+	args := []string{
+		javaSubmissionRunner.FilesRepository.GetFilePath(submission.ProblemID.String(), "Solution.java"),
 	}
 
 	cmdConfig := dtos.CommandConfig{
 		CommandName: "java",
-		CommandArgs: []string{FILE_NAME},
+		CommandArgs: args,
 		TimeOut:     2,
 		StdIn:       stDin,
 		StdOut:      stdOut,
@@ -83,5 +91,5 @@ func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(fileName strin
 		StdOut:      ioutil.Discard,
 	}
 
-	return executions.NewExecutionRunner().RunCommand(cmdConfig)
+	return NewExecutionRunner().RunCommand(cmdConfig)
 }

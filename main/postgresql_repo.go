@@ -2,14 +2,16 @@ package main
 
 import (
 	"Licenta_Processing_Service/dtos"
+	"encoding/json"
 	"fmt"
-	uuid "github.com/satori/go.uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var db *gorm.DB
 var err error
+
+var submission dtos.Submission
 
 type PostgresSQLRepo struct {
 	db *gorm.DB
@@ -19,8 +21,11 @@ func NewPostgreSQLRepo() *PostgresSQLRepo {
 	return &PostgresSQLRepo{}
 }
 
-func (postgresSQLRepo *PostgresSQLRepo) getSubmission(db *gorm.DB, submissionId uuid.UUID) dtos.Submission {
-	//return db.Find(&dtos.Submission, 10)
+func (postgresSQLRepo *PostgresSQLRepo) getSubmission(db *gorm.DB) {
+	solution := db.Find(&submission, "id = ?", "f467b4ff-dd3b-40a5-810a-61dbcbba4237")
+	json.Marshal(solution)
+	fmt.Println(solution)
+
 }
 
 func main() {
@@ -52,4 +57,5 @@ func main() {
 	db.AutoMigrate(&dtos.Submission{})
 	db.AutoMigrate(&dtos.TestCase{})
 
+	NewPostgreSQLRepo().getSubmission(db)
 }
