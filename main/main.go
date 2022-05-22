@@ -24,12 +24,12 @@ func main() {
 		panic(err)
 	}
 
-	file, err := repository.OpenFile("49c6db5f-39a1-4647-8b40-a66875d6cc32", "Solution.java")
+	file, err := repository.OpenFile("test_dir", "Solution.java")
 	if err != nil {
 		panic(err)
 	}
 
-	executions.NewJavaSubmissionRunner(repository).RunSubmission(dtos.SolutionRequest{
+	executions.NewJavaSubmissionRunner(repository).RunSubmission(&dtos.SolutionRequest{
 		File: file,
 		Solution: dtos.Submission{
 			Id:                  uuid.FromStringOrNil("49c6db5f-39a1-4647-8b40-a66875d6cc32"),

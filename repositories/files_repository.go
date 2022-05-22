@@ -41,8 +41,14 @@ func (fileRepository *FilesRepository) OpenFile(problemDir, fileName string) (*o
 }
 
 func (fileRepository *FilesRepository) SaveFile(problemDir, fileName string, sourceFile io.Reader) error {
-	filepath := fmt.Sprintf("%s/%s/%s", fileRepository.BaseDirectory, problemDir, fileName)
-	destFile, err := os.Create(filepath)
+	dirPath := fmt.Sprintf("%s/%s", fileRepository.BaseDirectory, problemDir)
+
+	if err := os.Mkdir(dirPath, os.ModePerm); err != nil {
+		panic(err)
+	}
+
+	filePath := fmt.Sprintf("%s/%s/%s", fileRepository.BaseDirectory, problemDir, fileName)
+	destFile, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
@@ -54,7 +60,7 @@ func (fileRepository *FilesRepository) SaveFile(problemDir, fileName string, sou
 	return nil
 	//if err != nil {
 	//	logrus.WithFields(logrus.Fields{
-	//		"file path": filepath,
+	//		"file path": filePath,
 	//	}).WithError(err).Debug("error trying to create the file")
 	//}
 }
