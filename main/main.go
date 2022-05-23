@@ -31,7 +31,7 @@ func main() {
 
 	executions.NewJavaSubmissionRunner(repository).RunSubmission(&dtos.SolutionRequest{
 		File: file,
-		Solution: dtos.Submission{
+		Submission: dtos.Submission{
 			Id:                  uuid.FromStringOrNil("49c6db5f-39a1-4647-8b40-a66875d6cc32"),
 			ProblemID:           uuid.FromStringOrNil("9994ba64-a1ff-44ca-afc0-7410da8bf48e"),
 			UserId:              1,
@@ -41,12 +41,12 @@ func main() {
 		Tests: []dtos.TestCase{
 			{
 				Id:                     uuid.FromStringOrNil("49c6db5f-39a1-4647-8b40-a66875d6cc32"),
-				InputFileName:          "main/java_test/inputs",
+				InputFileName:          "inputs/test1",
 				ExpectedOutputFileName: "main/java_test/expected",
 			},
 			{
 				Id:                     uuid.FromStringOrNil("49c6db5f-39a1-4647-8b40-a66875d6cc32"),
-				InputFileName:          "main/java_test/inputs",
+				InputFileName:          "inputs/test2",
 				ExpectedOutputFileName: "main/java_test/expected",
 			},
 		},

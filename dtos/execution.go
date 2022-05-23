@@ -14,10 +14,16 @@ type SolutionResult struct {
 	Error         error
 }
 
+type RunTestRequest struct {
+	Submission     Submission
+	Test           TestCase
+	OutputFileName string
+}
+
 type SolutionRequest struct {
-	File     io.ReadCloser
-	Solution Submission
-	Tests    []TestCase
+	File       io.ReadCloser
+	Submission Submission
+	Tests      []TestCase
 }
 
 type CommandConfig struct {

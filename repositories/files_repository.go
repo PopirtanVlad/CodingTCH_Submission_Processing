@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"path/filepath"
@@ -24,6 +26,10 @@ func NewFileRepository(baseDirectory string) (*FilesRepository, error) {
 	}, nil
 }
 
+func (fileRepository *FilesRepository) GetDirPath(problemDir string) string {
+	return fmt.Sprintf("%s/%s", fileRepository.BaseDirectory, problemDir)
+}
+
 func (fileRepository *FilesRepository) GetFilePath(problemdir, filename string) string {
 	switch filepath.Ext(filename) {
 	case ".in":
@@ -43,8 +49,11 @@ func (fileRepository *FilesRepository) OpenFile(problemDir, fileName string) (*o
 func (fileRepository *FilesRepository) SaveFile(problemDir, fileName string, sourceFile io.Reader) error {
 	dirPath := fmt.Sprintf("%s/%s", fileRepository.BaseDirectory, problemDir)
 
-	if err := os.Mkdir(dirPath, os.ModePerm); err != nil {
-		panic(err)
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		logrus.Infof("The directory %s doesn't exist. Trying to create it", dirPath)
+		if err = os.Mkdir(dirPath, os.ModePerm); err != nil {
+			return errors.Wrapf(err, "directory %s couldn't be created", dirPath)
+		}
 	}
 
 	filePath := fmt.Sprintf("%s/%s/%s", fileRepository.BaseDirectory, problemDir, fileName)
@@ -53,7 +62,7 @@ func (fileRepository *FilesRepository) SaveFile(problemDir, fileName string, sou
 		return err
 	}
 	_, err = io.Copy(destFile, sourceFile)
-
+	defer func() { destFile.Close() }()
 	if err != nil {
 		return err
 	}
@@ -67,6 +76,9 @@ func (fileRepository *FilesRepository) SaveFile(problemDir, fileName string, sou
 
 func (fileRepository *FilesRepository) DeleteFile(problemDir, fileName string) error {
 	filepath := fmt.Sprintf("%s/%s/%s", fileRepository.BaseDirectory, problemDir, fileName)
+	if _, err := os.Stat(filepath); os.IsNotExist(err) {
+		return errors.Wrapf(err, "The file %s does not exist", filepath)
+	}
 	return os.Remove(filepath)
 	//if err != nil {
 	//	logrus.WithFields(logrus.Fields{
@@ -75,13 +87,7 @@ func (fileRepository *FilesRepository) DeleteFile(problemDir, fileName string) e
 	//}
 }
 
-func main() {
-	repo, _ := NewFileRepository("Florin")
-	file, err := repo.OpenFile("123", "Solution.c")
-
-	if err != nil {
-		fmt.Println("first", err)
-	}
-	err = repo.SaveFile("123", "fisiernou.c", file)
-	fmt.Println(err)
+func (fileRepository *FilesRepository) CreateFile(problemDir, fileName string) (io.WriteCloser, error) {
+	filepath := fmt.Sprintf("%s/%s/%s", fileRepository.BaseDirectory, problemDir, fileName)
+	return os.Create(filepath)
 }
