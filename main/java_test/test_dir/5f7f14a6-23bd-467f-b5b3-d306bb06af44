@@ -7,6 +7,6 @@ class Solution {
         String[] strings = line.split(" ");  // splits the string wherever a space character is encountered, returns the result as a String[]
         int first = Integer.parseInt(strings[0]);
         int second = Integer.parseInt(strings[1]);
-        System.out.println("First number = " + first + ", second number = " + second + ".");
+        System.out.printf("%d + %d = %d", first, second, first + second);
     }
 }

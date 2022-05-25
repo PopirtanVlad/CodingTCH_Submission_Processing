@@ -4,9 +4,9 @@ type ProgrammingLanguage string
 type ProblemDifficulty string
 
 const (
-	Python3 ProgrammingLanguage = "python3"
-	Java    ProgrammingLanguage = "java"
-	C       ProgrammingLanguage = "c"
+	Python3 ProgrammingLanguage = "Python"
+	Java    ProgrammingLanguage = "Java"
+	C       ProgrammingLanguage = "C"
 )
 
 const (

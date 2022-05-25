@@ -1,41 +1,44 @@
 package services
 
 import (
-	"context"
+	"Licenta_Processing_Service/language_runners"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
-	"log"
 )
 
 type RabbitMQConfig struct {
-	Username  string
-	Password  string
-	HostName  string
-	Port      int
-	QueueName string
+	Username          string
+	Password          string
+	HostName          string
+	Port              int
+	QueueName         string
+	SubmissionWrapper *language_runners.SubmissionWrapper
 }
 
 type RabbitMQConsumer struct {
-	username   string
-	password   string
-	hostName   string
-	port       int
-	queueName  string
-	channel    *amqp.Channel
-	connection *amqp.Connection
+	username          string
+	password          string
+	hostName          string
+	port              int
+	queueName         string
+	channel           *amqp.Channel
+	connection        *amqp.Connection
+	SubmissionWrapper *language_runners.SubmissionWrapper
 }
 
 func NewRabbitMQConsumer(rabbbitMQConf *RabbitMQConfig) *RabbitMQConsumer {
 	return &RabbitMQConsumer{
-		username:  rabbbitMQConf.Username,
-		password:  rabbbitMQConf.Password,
-		hostName:  rabbbitMQConf.HostName,
-		port:      rabbbitMQConf.Port,
-		queueName: rabbbitMQConf.QueueName,
+		username:          rabbbitMQConf.Username,
+		password:          rabbbitMQConf.Password,
+		hostName:          rabbbitMQConf.HostName,
+		port:              rabbbitMQConf.Port,
+		queueName:         rabbbitMQConf.QueueName,
+		SubmissionWrapper: rabbbitMQConf.SubmissionWrapper,
 	}
 }
 
-func (rabbitMQConsumer *RabbitMQConsumer) StartConnection(ctx context.Context) error {
+func (rabbitMQConsumer *RabbitMQConsumer) StartConnection() error {
 	//connectionURI := amqp.URI{Username: "guest",
 	//	Password: "guest",
 	//	Host:     "localhost",
@@ -58,7 +61,7 @@ func (rabbitMQConsumer *RabbitMQConsumer) StartConnection(ctx context.Context) e
 	return nil
 }
 
-func (rabbitMQConsumer *RabbitMQConsumer) StopConnection(ctx context.Context) error {
+func (rabbitMQConsumer *RabbitMQConsumer) StopConnection() error {
 	err := rabbitMQConsumer.connection.Close()
 
 	if err != nil {
@@ -68,7 +71,7 @@ func (rabbitMQConsumer *RabbitMQConsumer) StopConnection(ctx context.Context) er
 	return nil
 }
 
-func (rabbitMQConsumer *RabbitMQConsumer) AcceptMessages(ctx context.Context) error {
+func (rabbitMQConsumer *RabbitMQConsumer) AcceptMessages() error {
 	ch, err := rabbitMQConsumer.connection.Channel()
 
 	ch.Qos(1, 0, false)
@@ -105,7 +108,7 @@ func (rabbitMQConsumer *RabbitMQConsumer) AcceptMessages(ctx context.Context) er
 
 	go func() {
 		for message := range messages {
-			handleMessageReceived(string(message.Body))
+			rabbitMQConsumer.handleMessageReceived(string(message.Body))
 		}
 	}()
 
@@ -113,7 +116,9 @@ func (rabbitMQConsumer *RabbitMQConsumer) AcceptMessages(ctx context.Context) er
 	return nil
 }
 
-func handleMessageReceived(message string) {
-
-	log.Printf("RECEIVED MESSAGE: %s", message)
+func (rabbitMQConsumer *RabbitMQConsumer) handleMessageReceived(message string) {
+	err := rabbitMQConsumer.SubmissionWrapper.RunSubmission(uuid.MustParse(message))
+	if err != nil {
+		return
+	}
 }

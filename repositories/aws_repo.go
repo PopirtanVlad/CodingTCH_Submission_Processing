@@ -1,17 +1,13 @@
 package repositories
 
 import (
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"io/ioutil"
+	"github.com/sirupsen/logrus"
+	"io"
 	"os"
 	"strings"
-)
-
-var (
-	s3session *s3.S3
 )
 
 const (
@@ -19,20 +15,26 @@ const (
 	REGION      = "eu-central-1"
 )
 
-func init() {
-	s3session = s3.New(session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(REGION),
-	})))
+type S3Repository struct {
+	s3session *s3.S3
 }
 
-func uploadObject(fileName string) (resp *s3.PutObjectOutput) {
+func NewS3Repository() *S3Repository {
+	return &S3Repository{
+		s3session: s3.New(session.Must(session.NewSession(&aws.Config{Region: aws.String(REGION)}))),
+	}
+}
+
+func (s3Repo *S3Repository) uploadObject(fileName string) (resp *s3.PutObjectOutput) {
 	f, err := os.Open(fileName)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Uploading: ", fileName)
-	resp, err = s3session.PutObject(&s3.PutObjectInput{Body: f,
+	logrus.WithFields(logrus.Fields{
+		"File Name": fileName,
+	}).Info("Uploading file to s3")
+	resp, err = s3Repo.s3session.PutObject(&s3.PutObjectInput{Body: f,
 		Bucket: aws.String(BUCKET_NAME),
 		Key:    aws.String(strings.Split(fileName, "/")[1]),
 		ACL:    aws.String(s3.BucketCannedACLPublicRead)})
@@ -43,31 +45,30 @@ func uploadObject(fileName string) (resp *s3.PutObjectOutput) {
 	return resp
 }
 
-func getObject(filename string) {
-	fmt.Println("Downloading:", filename)
+func (s3Repo *S3Repository) GetSubmission(fileName string) (io.ReadCloser, error) {
+	logrus.WithFields(logrus.Fields{
+		"File Name": fileName,
+	}).Info("Downloading submission from s3")
 
-	resp, err := s3session.GetObject(&s3.GetObjectInput{
+	resp, err := s3Repo.s3session.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(BUCKET_NAME),
-		Key:    aws.String(filename),
+		Key:    aws.String(fileName),
 	})
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	err = ioutil.WriteFile(filename, body, 0644)
-	if err != nil {
-		panic(err)
-	}
+	return resp.Body, nil
 }
 
-func deleteObject(filename string) (resp *s3.DeleteObjectOutput) {
-	fmt.Println("Deleting", filename)
+func (s3Repo *S3Repository) deleteObject(fileName string) (resp *s3.DeleteObjectOutput) {
+	logrus.WithFields(logrus.Fields{
+		"File Name": fileName,
+	}).Info("Deleting file from s3")
 
-	resp, err := s3session.DeleteObject(&s3.DeleteObjectInput{
+	resp, err := s3Repo.s3session.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(BUCKET_NAME),
-		Key:    aws.String(filename),
+		Key:    aws.String(fileName),
 	})
 
 	if err != nil {

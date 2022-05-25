@@ -1,4 +1,4 @@
-package main
+package repositories
 
 import (
 	"Licenta_Processing_Service/dtos"

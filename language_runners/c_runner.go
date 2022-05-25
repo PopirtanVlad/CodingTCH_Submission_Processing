@@ -1,8 +1,9 @@
-package executions
+package language_runners
 
 import (
 	"Licenta_Processing_Service/dtos"
 	"Licenta_Processing_Service/repositories"
+	"Licenta_Processing_Service/services/executions"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -15,27 +16,27 @@ import (
 var COMPILED_C_FILE_NAME = "Solution.exe"
 
 type CSubmissionRunner struct {
-	ExecutionRunner ExecutionRunner
+	ExecutionRunner executions.ExecutionRunner
 	FilesRepository *repositories.FilesRepository
 }
 
 func NewCSubmissionRunner(repository *repositories.FilesRepository) *CSubmissionRunner {
 	return &CSubmissionRunner{
-		ExecutionRunner: *NewExecutionRunner(),
+		ExecutionRunner: *executions.NewExecutionRunner(),
 		FilesRepository: repository,
 	}
 }
 
 func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *dtos.SolutionRequest) ([]*dtos.TestResult, error) {
 	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
-	err := CSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID.String(), "Solution.c", solutionReq.File)
+	err := CSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID.String(), solutionReq.Submission.Id.String()+".c", solutionReq.File)
 
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		err := CSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID.String(), "Solution.c")
+		err := CSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID.String(), solutionReq.Submission.Id.String()+".c")
 		if err != nil {
 			logrus.WithError(err).Warnf("Could not delete file")
 		}
@@ -150,7 +151,7 @@ func (CSubmissionRunner *CSubmissionRunner) executeProgram(submission dtos.Submi
 }
 
 func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *dtos.SolutionRequest) (*dtos.SolutionResult, error) {
-	solutionPath := CSubmissionRunner.FilesRepository.GetFilePath(request.Submission.ProblemID.String(), "Solution.c")
+	solutionPath := CSubmissionRunner.FilesRepository.GetFilePath(request.Submission.ProblemID.String(), request.Submission.Id.String()+".c")
 
 	cmdConfig := dtos.CommandConfig{
 		CommandName: "gcc",
@@ -160,7 +161,7 @@ func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *dtos.Soluti
 		StdOut:      ioutil.Discard,
 	}
 
-	return NewExecutionRunner().RunCommand(cmdConfig)
+	return executions.NewExecutionRunner().RunCommand(cmdConfig)
 }
 
 func (CSubmissionRunner *CSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {

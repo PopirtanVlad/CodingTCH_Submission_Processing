@@ -1,8 +1,9 @@
-package executions
+package language_runners
 
 import (
 	"Licenta_Processing_Service/dtos"
 	"Licenta_Processing_Service/repositories"
+	"Licenta_Processing_Service/services/executions"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -12,31 +13,34 @@ import (
 	"os"
 )
 
-var FILE_NAME = "Solution.java"
-var COMPILED_JAVA_FILE_NAME = "Solution"
+const (
+	JavaFileName         = "Solution.java"
+	JavaClassName        = "Solution.class"
+	CompiledJavaFileName = "Solution"
+)
 
 type JavaSubmissionRunner struct {
-	ExecutionRunner ExecutionRunner
+	ExecutionRunner executions.ExecutionRunner
 	FilesRepository *repositories.FilesRepository
 }
 
 func NewJavaSubmissionRunner(repository *repositories.FilesRepository) *JavaSubmissionRunner {
 	return &JavaSubmissionRunner{
-		ExecutionRunner: *NewExecutionRunner(),
+		ExecutionRunner: *executions.NewExecutionRunner(),
 		FilesRepository: repository,
 	}
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *dtos.SolutionRequest) ([]*dtos.TestResult, error) {
 	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
-	err := javaSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID.String(), "Solution.java", solutionReq.File)
+	err := javaSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID.String(), JavaFileName, solutionReq.File)
 
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		err := javaSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID.String(), "Solution.java")
+		err := javaSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID.String(), JavaFileName)
 		if err != nil {
 			logrus.WithError(err).Warnf("Could not delete file")
 		}
@@ -49,7 +53,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *dto
 	}
 
 	defer func() {
-		err := javaSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID.String(), "Solution.class")
+		err := javaSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID.String(), JavaClassName)
 		if err != nil {
 			logrus.WithError(err).Warnf("Could not delete file")
 		}
@@ -142,7 +146,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos
 
 	cmdConfig := dtos.CommandConfig{
 		CommandName: "java",
-		CommandArgs: []string{COMPILED_JAVA_FILE_NAME},
+		CommandArgs: []string{CompiledJavaFileName},
 		TimeOut:     2,
 		StdIn:       stDin,
 		StdOut:      stdOut,
@@ -151,7 +155,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *dtos.SolutionRequest) (*dtos.SolutionResult, error) {
-	solutionPath := javaSubmissionRunner.FilesRepository.GetFilePath(request.Submission.ProblemID.String(), "Solution.java")
+	solutionPath := javaSubmissionRunner.FilesRepository.GetFilePath(request.Submission.ProblemID.String(), JavaFileName)
 
 	cmdConfig := dtos.CommandConfig{
 		CommandName: "javac",
@@ -161,7 +165,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *dtos.
 		StdOut:      ioutil.Discard,
 	}
 
-	return NewExecutionRunner().RunCommand(cmdConfig)
+	return executions.NewExecutionRunner().RunCommand(cmdConfig)
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {
