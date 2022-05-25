@@ -10,6 +10,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/streadway/amqp v1.0.0
+	github.com/udhos/equalfile v0.3.0
 	gorm.io/driver/postgres v1.3.5
 	gorm.io/gorm v1.23.5
 )

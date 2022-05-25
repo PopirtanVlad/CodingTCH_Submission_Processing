@@ -42,12 +42,12 @@ func main() {
 			{
 				Id:                     uuid.FromStringOrNil("49c6db5f-39a1-4647-8b40-a66875d6cc32"),
 				InputFileName:          "inputs/test1",
-				ExpectedOutputFileName: "main/java_test/expected",
+				ExpectedOutputFileName: "expected/ref1",
 			},
 			{
 				Id:                     uuid.FromStringOrNil("49c6db5f-39a1-4647-8b40-a66875d6cc32"),
 				InputFileName:          "inputs/test2",
-				ExpectedOutputFileName: "main/java_test/expected",
+				ExpectedOutputFileName: "expected/ref2",
 			},
 		},
 	})

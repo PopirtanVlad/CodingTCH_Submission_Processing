@@ -5,6 +5,7 @@ import (
 	"Licenta_Processing_Service/repositories"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"github.com/udhos/equalfile"
 	"io"
 	"io/ioutil"
 	"os"
@@ -90,14 +91,16 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *dtos.RunTestR
 	_, err = javaSubmissionRunner.executeProgram(request.Submission, inputFile, outputFile)
 
 	defer func() {
-		//if err := javaSubmissionRunner.FilesRepository.DeleteFile(request.Submission.ProblemID.String(), request.OutputFileName); err != nil {
-		//	logrus.WithError(err).Errorf("Could not delete output file: %s", request.OutputFileName)
-		//}
+		if err := javaSubmissionRunner.FilesRepository.DeleteFile(request.Submission.ProblemID.String(), request.OutputFileName); err != nil {
+			logrus.WithError(err).Errorf("Could not delete output file: %s", request.OutputFileName)
+		}
 
 	}()
 	if err != nil {
 		return nil, err
 	}
+
+	javaSubmissionRunner.compareOutput(request.Submission.ProblemID.String(), request.Test.ExpectedOutputFileName, request.OutputFileName)
 
 	return nil, err
 }
@@ -145,4 +148,19 @@ func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *dtos.
 	}
 
 	return NewExecutionRunner().RunCommand(cmdConfig)
+}
+
+func (javaSubmissionRunner *JavaSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {
+	outputPath, _ := javaSubmissionRunner.FilesRepository.OpenFile(pathDir, outPutFileName)
+	refPath, _ := javaSubmissionRunner.FilesRepository.OpenFile(pathDir, refFileName)
+
+	defer outputPath.Close()
+	defer refPath.Close()
+
+	equal, err := equalfile.New(nil, equalfile.Options{}).CompareReader(outputPath, refPath)
+	if err != nil {
+		return false, err
+	}
+
+	return equal, nil
 }
