@@ -5,19 +5,10 @@ import (
 	"Licenta_Processing_Service/repositories"
 	"Licenta_Processing_Service/services"
 	"Licenta_Processing_Service/services/executions"
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
 
-func main() {
-
-	_ = &services.RabbitMQConfig{
-		Username:  "pgisyrij",
-		Password:  "Knh0-TwtXSPvv_1lqJoC-u92ZfHzFaVk",
-		HostName:  "roedeer.rmq.cloudamqp.com",
-		Port:      5672,
-		QueueName: "YES",
-	}
-
+func RunJava() {
 	repository, err := repositories.NewFileRepository("java_test")
 
 	if err != nil {
@@ -32,24 +23,73 @@ func main() {
 	executions.NewJavaSubmissionRunner(repository).RunSubmission(&dtos.SolutionRequest{
 		File: file,
 		Submission: dtos.Submission{
-			Id:                  uuid.FromStringOrNil("49c6db5f-39a1-4647-8b40-a66875d6cc32"),
-			ProblemID:           uuid.FromStringOrNil("9994ba64-a1ff-44ca-afc0-7410da8bf48e"),
+			Id:                  uuid.New(),
+			ProblemID:           uuid.MustParse("9994ba64-a1ff-44ca-afc0-7410da8bf48e"),
 			UserId:              1,
 			ProgrammingLanguage: "Java",
 			TestResults:         nil,
 		},
 		Tests: []dtos.TestCase{
 			{
-				Id:                     uuid.FromStringOrNil("49c6db5f-39a1-4647-8b40-a66875d6cc32"),
+				Id:                     uuid.New(),
 				InputFileName:          "inputs/test1",
 				ExpectedOutputFileName: "expected/ref1",
 			},
 			{
-				Id:                     uuid.FromStringOrNil("49c6db5f-39a1-4647-8b40-a66875d6cc32"),
+				Id:                     uuid.New(),
 				InputFileName:          "inputs/test2",
 				ExpectedOutputFileName: "expected/ref2",
 			},
 		},
 	})
+}
+
+func RunC() {
+	repository, err := repositories.NewFileRepository("java_test")
+
+	if err != nil {
+		panic(err)
+	}
+
+	file, err := repository.OpenFile("test_dir", "Solution.c")
+	if err != nil {
+		panic(err)
+	}
+
+	executions.NewCSubmissionRunner(repository).RunSubmission(&dtos.SolutionRequest{
+		File: file,
+		Submission: dtos.Submission{
+			Id:                  uuid.New(),
+			ProblemID:           uuid.MustParse("9994ba64-a1ff-44ca-afc0-7410da8bf48e"),
+			UserId:              1,
+			ProgrammingLanguage: "Java",
+			TestResults:         nil,
+		},
+		Tests: []dtos.TestCase{
+			{
+				Id:                     uuid.New(),
+				InputFileName:          "inputs/test1",
+				ExpectedOutputFileName: "expected/ref1",
+			},
+			{
+				Id:                     uuid.New(),
+				InputFileName:          "inputs/test2",
+				ExpectedOutputFileName: "expected/ref2",
+			},
+		},
+	})
+}
+
+func main() {
+
+	_ = &services.RabbitMQConfig{
+		Username:  "pgisyrij",
+		Password:  "Knh0-TwtXSPvv_1lqJoC-u92ZfHzFaVk",
+		HostName:  "roedeer.rmq.cloudamqp.com",
+		Port:      5672,
+		QueueName: "YES",
+	}
+
+	RunC()
 
 }

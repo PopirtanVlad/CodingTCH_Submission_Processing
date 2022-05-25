@@ -1,8 +1,8 @@
 package dtos
 
 import (
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
-	uuid "github.com/satori/go.uuid"
 	"time"
 )
 

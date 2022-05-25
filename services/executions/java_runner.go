@@ -3,6 +3,7 @@ package executions
 import (
 	"Licenta_Processing_Service/dtos"
 	"Licenta_Processing_Service/repositories"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/udhos/equalfile"
@@ -11,8 +12,8 @@ import (
 	"os"
 )
 
-var FILE_ID = "java_test"
 var FILE_NAME = "Solution.java"
+var COMPILED_JAVA_FILE_NAME = "Solution"
 
 type JavaSubmissionRunner struct {
 	ExecutionRunner ExecutionRunner
@@ -70,6 +71,9 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *dto
 		results = append(results, result)
 
 	}
+	for _, result := range results {
+		fmt.Println(result)
+	}
 	return results, nil
 }
 
@@ -88,7 +92,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *dtos.RunTestR
 	}
 	defer outputFile.Close()
 
-	_, err = javaSubmissionRunner.executeProgram(request.Submission, inputFile, outputFile)
+	testRunDetails, err := javaSubmissionRunner.executeProgram(request.Submission, inputFile, outputFile)
 
 	defer func() {
 		if err := javaSubmissionRunner.FilesRepository.DeleteFile(request.Submission.ProblemID.String(), request.OutputFileName); err != nil {
@@ -100,9 +104,19 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *dtos.RunTestR
 		return nil, err
 	}
 
-	javaSubmissionRunner.compareOutput(request.Submission.ProblemID.String(), request.Test.ExpectedOutputFileName, request.OutputFileName)
+	areTheSame, err := javaSubmissionRunner.compareOutput(request.Submission.ProblemID.String(), request.Test.ExpectedOutputFileName, request.OutputFileName)
 
-	return nil, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &dtos.TestResult{
+		Id:           uuid.New(),
+		Correct:      areTheSame,
+		TimeElapsed:  testRunDetails.ExecutionTime,
+		MemoryUsed:   testRunDetails.MemoryUsage,
+		ErrorMessage: "nil",
+	}, nil
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos.Submission, stDin io.ReadCloser, stdOut io.WriteCloser) (*dtos.SolutionResult, error) {
@@ -128,7 +142,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos
 
 	cmdConfig := dtos.CommandConfig{
 		CommandName: "java",
-		CommandArgs: []string{"Solution"},
+		CommandArgs: []string{COMPILED_JAVA_FILE_NAME},
 		TimeOut:     2,
 		StdIn:       stDin,
 		StdOut:      stdOut,
