@@ -115,11 +115,12 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *dtos.RunTestR
 	}
 
 	return &dtos.TestResult{
-		Id:           uuid.New(),
-		Correct:      areTheSame,
-		TimeElapsed:  testRunDetails.ExecutionTime,
-		MemoryUsed:   testRunDetails.MemoryUsage,
-		ErrorMessage: "nil",
+		Id:                 uuid.New(),
+		Correct:            areTheSame,
+		TimeElapsed:        testRunDetails.ExecutionTime,
+		MemoryUsed:         testRunDetails.MemoryUsage,
+		ErrorMessage:       "nil",
+		ResultSubmissionId: request.Submission.Id,
 	}, nil
 }
 

@@ -119,6 +119,6 @@ func (rabbitMQConsumer *RabbitMQConsumer) AcceptMessages() error {
 func (rabbitMQConsumer *RabbitMQConsumer) handleMessageReceived(message string) {
 	err := rabbitMQConsumer.SubmissionWrapper.RunSubmission(uuid.MustParse(message))
 	if err != nil {
-		return
+		panic(err)
 	}
 }

@@ -14,13 +14,13 @@ type FilesRepository struct {
 }
 
 func NewFileRepository(baseDirectory string) (*FilesRepository, error) {
-	//if err := os.RemoveAll(baseDirectory); err != nil {
-	//	return nil, err
-	//}
+	if err := os.RemoveAll(baseDirectory); err != nil {
+		return nil, err
+	}
 
-	//if err := os.Mkdir(baseDirectory, os.ModePerm); err != nil {
-	//	return nil, err
-	//}
+	if err := os.Mkdir(baseDirectory, os.ModePerm); err != nil {
+		return nil, err
+	}
 	return &FilesRepository{
 		BaseDirectory: baseDirectory,
 	}, nil

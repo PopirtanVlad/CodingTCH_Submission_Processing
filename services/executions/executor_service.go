@@ -4,7 +4,6 @@ import (
 	"Licenta_Processing_Service/custom_errors"
 	"Licenta_Processing_Service/dtos"
 	"bytes"
-	"fmt"
 	_ "fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -52,7 +51,6 @@ func (executionRunner *ExecutionRunner) RunCommand(cmdConfig dtos.CommandConfig)
 
 	cmd.Wait()
 	endTime := time.Since(startTime)
-	fmt.Println("END TIME: " + endTime.String() + "LIMIT: " + executionRunner.timeLimit.String())
 	if endTime > executionRunner.timeLimit {
 		logrus.WithFields(logrus.Fields{
 			"Time limit":  executionRunner.timeLimit,

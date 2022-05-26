@@ -17,6 +17,7 @@ type RabbitMQConfig struct {
 type AWSConfig struct {
 	AWSRegion     string
 	AWSBucketName string
+	BaseLocalDir  string
 }
 
 type PostgresSQLConfig struct {

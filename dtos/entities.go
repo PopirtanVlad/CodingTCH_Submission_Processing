@@ -2,13 +2,10 @@ package dtos
 
 import (
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	"time"
 )
 
 type User struct {
-	gorm.Model
-
 	UserID         uint64
 	DisplayName    string
 	UserEmail      string
@@ -24,13 +21,14 @@ type Problem struct {
 	ProblemTitle      string
 	TimeLimit         time.Duration
 	MemoryLimit       uint64
-	TestCases         []TestCase `gorm:"foreignKey:Id"`
+	TestCases         []TestCase `gorm:"foreignKey:TestProblemId"`
 }
 
 type TestCase struct {
 	Id                     uuid.UUID
 	InputFileName          string
 	ExpectedOutputFileName string
+	TestProblemId          uuid.UUID
 }
 
 type Submission struct {
@@ -38,14 +36,15 @@ type Submission struct {
 	ProblemID           uuid.UUID `gorm:"references:problem_id"`
 	UserId              uint64
 	ProgrammingLanguage ProgrammingLanguage
-	//UploadTime          time.Time
-	TestResults []*TestResult `gorm:"foreignKey:Id"`
+	UploadTime          time.Time
+	TestResults         []*TestResult `gorm:"foreignKey:ResultSubmissionId"`
 }
 
 type TestResult struct {
-	Id           uuid.UUID
-	Correct      bool
-	TimeElapsed  time.Duration
-	MemoryUsed   uint64
-	ErrorMessage string
+	Id                 uuid.UUID
+	ResultSubmissionId uuid.UUID
+	Correct            bool
+	TimeElapsed        time.Duration
+	MemoryUsed         uint64
+	ErrorMessage       string
 }

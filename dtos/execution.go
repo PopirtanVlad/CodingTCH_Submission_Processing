@@ -21,9 +21,11 @@ type RunTestRequest struct {
 }
 
 type SolutionRequest struct {
-	File       io.ReadCloser
-	Submission Submission
-	Tests      []TestCase
+	File        io.ReadCloser
+	Submission  Submission
+	Tests       []TestCase
+	TimeOut     time.Duration
+	MemoryLimit uint64
 }
 
 type CommandConfig struct {
