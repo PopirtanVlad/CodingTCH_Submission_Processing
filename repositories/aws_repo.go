@@ -55,8 +55,7 @@ func (s3Repo *S3Repository) GetSubmission(problemId, submissionId string) (io.Re
 		"File Name": submissionId,
 	}).Info("Downloading submission from s3")
 
-	filePath := fmt.Sprintf("%s/%s", problemId, submissionId)
-	fmt.Println(filePath)
+	filePath := fmt.Sprintf("submissions/%s/%s", problemId, submissionId)
 	resp, err := s3Repo.s3session.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(s3Repo.bucket),
 		Key:    aws.String(filePath),

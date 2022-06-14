@@ -6,45 +6,45 @@ import (
 )
 
 type User struct {
-	UserID         uint64
-	DisplayName    string
-	UserEmail      string
-	Enabled        bool
-	UserPassword   string
-	ProviderUserId string
+	Id             uint64 `gorm:"primaryKey"`
+	DisplayName    string `gorm:"column:display_name"`
+	UserEmail      string `gorm:"column:user_email"`
+	Enabled        bool   `gorm:"enabled"`
+	UserPassword   string `gorm:"user_password"`
+	ProviderUserId string `gorm:"provider_user_id"`
 }
 
 type Problem struct {
-	Id                uuid.UUID
-	ProblemDifficulty ProblemDifficulty
-	ProblemStatement  string
-	ProblemTitle      string
-	TimeLimit         time.Duration
-	MemoryLimit       uint64
-	TestCases         []TestCase `gorm:"foreignKey:TestProblemId"`
+	Id                uuid.UUID         `gorm:"primaryKey"`
+	ProblemDifficulty ProblemDifficulty `gorm:"column:problem_difficulty"`
+	ProblemStatement  string            `gorm:"column:problem_statement"`
+	ProblemTitle      string            `gorm:"column:problem_title"`
+	TimeLimit         time.Duration     `gorm:"column:time_limit"`
+	MemoryLimit       uint64            `gorm:"column:memory_limit"`
+	TestCases         []TestCase
 }
 
 type TestCase struct {
-	Id                     uuid.UUID
-	InputFileName          string
-	ExpectedOutputFileName string
-	TestProblemId          uuid.UUID
+	Id                     uuid.UUID `gorm:"primaryKey"`
+	InputFileName          string    `gorm:"column:test_case_input"`
+	ExpectedOutputFileName string    `gorm:"column:test_case_output"`
+	ProblemId              uuid.UUID
 }
 
 type Submission struct {
-	Id                  uuid.UUID
+	Id                  uuid.UUID `gorm:"primaryKey"`
 	ProblemID           uuid.UUID `gorm:"references:problem_id"`
 	UserId              uint64
-	ProgrammingLanguage ProgrammingLanguage
-	UploadTime          time.Time
-	TestResults         []*TestResult `gorm:"foreignKey:ResultSubmissionId"`
+	ProgrammingLanguage ProgrammingLanguage `gorm:"column:programming_language"`
+	UploadTime          time.Time           `gorm:"column:upload_time"`
+	TestResults         []*TestResult
 }
 
 type TestResult struct {
-	Id                 uuid.UUID
-	ResultSubmissionId uuid.UUID
-	Correct            bool
-	TimeElapsed        time.Duration
-	MemoryUsed         uint64
-	ErrorMessage       string
+	Id           uuid.UUID `gorm:"primaryKey"`
+	SubmissionId uuid.UUID
+	Correct      bool          `gorm:"column:test_status"`
+	TimeElapsed  time.Duration `gorm:"test_time_elapsed"`
+	MemoryUsed   uint64        `gorm:"test_memory_used"`
+	ErrorMessage string        `gorm:"error_message"`
 }

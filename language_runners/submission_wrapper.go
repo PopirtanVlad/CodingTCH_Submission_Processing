@@ -32,40 +32,6 @@ func NewSubmissionWrapper(config *SubmissionWrapperConf) *SubmissionWrapper {
 	}
 }
 
-//var submission = dtos.Submission{
-//	Id:                  uuid.New(),
-//	ProblemID:           uuid.MustParse("b1218de1-f0a8-4552-8b28-29009882ac63"),
-//	UserId:              1,
-//	ProgrammingLanguage: "Java",
-//	TestResults:         nil,
-//}
-
-//var problem = dtos.Problem{
-//	Id:                uuid.New(),
-//	ProblemDifficulty: "Hard",
-//	ProblemStatement:  "Da",
-//	ProblemTitle:      "Yes",
-//	TimeLimit:         3000000,
-//	MemoryLimit:       1000000,
-//	TestCases: []dtos.TestCase{
-//		{
-//			Id:                     uuid.New(),
-//			InputFileName:          "inputs/test1",
-//			ExpectedOutputFileName: "expected/ref1",
-//		},
-//		{
-//			Id:                     uuid.New(),
-//			InputFileName:          "inputs/test2",
-//			ExpectedOutputFileName: "expected/ref2",
-//		},
-//		{
-//			Id:                     uuid.New(),
-//			InputFileName:          "inputs/test3",
-//			ExpectedOutputFileName: "expected/ref3",
-//		},
-//	},
-//}
-
 func (submissionWrapper *SubmissionWrapper) RunSubmission(submissionId uuid.UUID) error {
 	//We take the submission from the database
 	submission, err := submissionWrapper.DbRepo.GetSubmission(submissionId.String())

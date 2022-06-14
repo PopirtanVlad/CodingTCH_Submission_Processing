@@ -33,11 +33,11 @@ func (fileRepository *FilesRepository) GetDirPath(problemDir string) string {
 func (fileRepository *FilesRepository) GetFilePath(problemdir, filename string) string {
 	switch filepath.Ext(filename) {
 	case ".in":
-		return fmt.Sprintf("%s/%s/inputs/%s\n", fileRepository.BaseDirectory, problemdir, filename)
+		return fmt.Sprintf("%s/problems/%s/inputs/%s\n", fileRepository.BaseDirectory, problemdir, filename)
 	case ".ref":
-		return fmt.Sprintf("%s/%s/expected/%s\n", fileRepository.BaseDirectory, problemdir, filename)
+		return fmt.Sprintf("%s/problems/%s/expected/%s\n", fileRepository.BaseDirectory, problemdir, filename)
 	default:
-		return fmt.Sprintf("%s/%s/%s", fileRepository.BaseDirectory, problemdir, filename)
+		return fmt.Sprintf("%s/submissions/%s/%s", fileRepository.BaseDirectory, problemdir, filename)
 	}
 }
 
