@@ -38,7 +38,6 @@ func (submissionWrapper *SubmissionWrapper) RunSubmission(submissionId uuid.UUID
 	if err != nil {
 		return errors.Wrapf(err, "Could not get the submission: %s from the database", submissionId)
 	}
-	//fmt.Println(submission)
 	//We get the problem from the database
 	problem, err := submissionWrapper.DbRepo.GetProblem(submission.ProblemID.String())
 	if err != nil {
@@ -46,12 +45,12 @@ func (submissionWrapper *SubmissionWrapper) RunSubmission(submissionId uuid.UUID
 	}
 
 	//We take the submission from the aws s3 repository
-	s3Submission, err := submissionWrapper.S3Repo.GetSubmission(submission.ProblemID.String(), submissionId.String())
+	s3Submission, err := submissionWrapper.S3Repo.GetSubmission(problem.ProblemTitle, submissionId.String())
 	if err != nil {
 		return errors.Wrapf(err, "Error trying to download submission: %s from s3", submissionId)
 	}
 
-	if err = submissionWrapper.S3Repo.DownloadTests(problem.Id.String()); err != nil {
+	if err = submissionWrapper.S3Repo.DownloadTests(problem.ProblemTitle); err != nil {
 		return errors.Wrapf(err, "Could sync the files for the problem: %s", problem.Id.String())
 	}
 
@@ -61,10 +60,10 @@ func (submissionWrapper *SubmissionWrapper) RunSubmission(submissionId uuid.UUID
 		return fmt.Errorf("%s is not supported as a programming language", submission.ProgrammingLanguage)
 	}
 
-	tests, err := submissionWrapper.DbRepo.GetTests(problem.Id.String())
+	tests, err := submissionWrapper.DbRepo.GetTests(problem.ProblemTitle)
 
 	if err != nil {
-		return fmt.Errorf("couldn't get tests cases for problem: %s", problem.Id.String())
+		return fmt.Errorf("couldn't get tests cases for problem: %s", problem.ProblemTitle)
 	}
 	solutionReq := &dtos.SolutionRequest{
 		File:        s3Submission,

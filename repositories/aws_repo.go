@@ -50,12 +50,13 @@ func (s3Repo *S3Repository) uploadObject(fileName string) (resp *s3.PutObjectOut
 	return resp
 }
 
-func (s3Repo *S3Repository) GetSubmission(problemId, submissionId string) (io.ReadCloser, error) {
+func (s3Repo *S3Repository) GetSubmission(problemTitle, submissionId string) (io.ReadCloser, error) {
 	logrus.WithFields(logrus.Fields{
 		"File Name": submissionId,
 	}).Info("Downloading submission from s3")
 
-	filePath := fmt.Sprintf("submissions/%s/%s", problemId, submissionId)
+	filePath := fmt.Sprintf("submissions/%s/%s", problemTitle, submissionId)
+	fmt.Println(filePath)
 	resp, err := s3Repo.s3session.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(s3Repo.bucket),
 		Key:    aws.String(filePath),

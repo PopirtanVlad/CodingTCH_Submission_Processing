@@ -15,13 +15,15 @@ type User struct {
 }
 
 type Problem struct {
-	Id                uuid.UUID         `gorm:"primaryKey"`
-	ProblemDifficulty ProblemDifficulty `gorm:"column:problem_difficulty"`
-	ProblemStatement  string            `gorm:"column:problem_statement"`
-	ProblemTitle      string            `gorm:"column:problem_title"`
-	TimeLimit         time.Duration     `gorm:"column:time_limit"`
-	MemoryLimit       uint64            `gorm:"column:memory_limit"`
-	TestCases         []TestCase
+	Id                   uuid.UUID         `gorm:"primaryKey"`
+	ProblemDifficulty    ProblemDifficulty //`gorm:"column:problem_difficulty"`
+	ProblemExampleInput  string            //`gorm:"column:problem_example_input"`
+	ProblemExampleOutput string            //`gorm:"column:problem_example_output"`
+	ProblemStatement     string            //`gorm:"column:problem_statement"`
+	ProblemTitle         string            //`gorm:"column:problem_title"`
+	TimeLimit            time.Duration     //`gorm:"column:time_limit"`
+	MemoryLimit          uint64            //`gorm:"column:memory_limit"`
+	TestCases            []TestCase
 }
 
 type TestCase struct {
@@ -33,7 +35,7 @@ type TestCase struct {
 
 type Submission struct {
 	Id                  uuid.UUID `gorm:"primaryKey"`
-	ProblemID           uuid.UUID `gorm:"references:problem_id"`
+	ProblemID           uuid.UUID
 	UserId              uint64
 	ProgrammingLanguage ProgrammingLanguage `gorm:"column:programming_language"`
 	UploadTime          time.Time           `gorm:"column:upload_time"`
