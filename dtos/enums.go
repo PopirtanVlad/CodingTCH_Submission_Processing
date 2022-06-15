@@ -1,12 +1,12 @@
 package dtos
 
-type ProgrammingLanguage string
+type ProgrammingLanguage int
 type ProblemDifficulty string
 
 const (
-	Python3 ProgrammingLanguage = "Python"
-	Java    ProgrammingLanguage = "Java"
-	C       ProgrammingLanguage = "C"
+	Python3 ProgrammingLanguage = 1
+	Java    ProgrammingLanguage = 0
+	C       ProgrammingLanguage = 2
 )
 
 const (

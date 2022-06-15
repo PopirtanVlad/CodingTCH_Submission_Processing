@@ -16,12 +16,14 @@ type SolutionResult struct {
 
 type RunTestRequest struct {
 	Submission     Submission
+	Problem        Problem
 	Test           TestCase
 	OutputFileName string
 }
 
 type SolutionRequest struct {
 	File        io.ReadCloser
+	Problem     Problem
 	Submission  Submission
 	Tests       []TestCase
 	TimeOut     time.Duration

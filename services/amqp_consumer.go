@@ -2,7 +2,6 @@ package services
 
 import (
 	"Licenta_Processing_Service/language_runners"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 )
@@ -117,7 +116,7 @@ func (rabbitMQConsumer *RabbitMQConsumer) AcceptMessages() error {
 }
 
 func (rabbitMQConsumer *RabbitMQConsumer) handleMessageReceived(message string) {
-	err := rabbitMQConsumer.SubmissionWrapper.RunSubmission(uuid.MustParse(message))
+	err := rabbitMQConsumer.SubmissionWrapper.RunSubmission(message)
 	if err != nil {
 		panic(err)
 	}

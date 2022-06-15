@@ -5,7 +5,6 @@ import (
 	"Licenta_Processing_Service/repositories"
 
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -32,61 +31,26 @@ func NewSubmissionWrapper(config *SubmissionWrapperConf) *SubmissionWrapper {
 	}
 }
 
-//var submission = dtos.Submission{
-//	Id:                  uuid.New(),
-//	ProblemID:           uuid.MustParse("b1218de1-f0a8-4552-8b28-29009882ac63"),
-//	UserId:              1,
-//	ProgrammingLanguage: "Java",
-//	TestResults:         nil,
-//}
-
-//var problem = dtos.Problem{
-//	Id:                uuid.New(),
-//	ProblemDifficulty: "Hard",
-//	ProblemStatement:  "Da",
-//	ProblemTitle:      "Yes",
-//	TimeLimit:         3000000,
-//	MemoryLimit:       1000000,
-//	TestCases: []dtos.TestCase{
-//		{
-//			Id:                     uuid.New(),
-//			InputFileName:          "inputs/test1",
-//			ExpectedOutputFileName: "expected/ref1",
-//		},
-//		{
-//			Id:                     uuid.New(),
-//			InputFileName:          "inputs/test2",
-//			ExpectedOutputFileName: "expected/ref2",
-//		},
-//		{
-//			Id:                     uuid.New(),
-//			InputFileName:          "inputs/test3",
-//			ExpectedOutputFileName: "expected/ref3",
-//		},
-//	},
-//}
-
-func (submissionWrapper *SubmissionWrapper) RunSubmission(submissionId uuid.UUID) error {
+func (submissionWrapper *SubmissionWrapper) RunSubmission(submissionId string) error {
 	//We take the submission from the database
-	submission, err := submissionWrapper.DbRepo.GetSubmission(submissionId.String())
+	submission, err := submissionWrapper.DbRepo.GetSubmission(submissionId)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get the submission: %s from the database", submissionId)
 	}
-	//fmt.Println(submission)
 	//We get the problem from the database
-	problem, err := submissionWrapper.DbRepo.GetProblem(submission.ProblemID.String())
+	problem, err := submissionWrapper.DbRepo.GetProblem(submission.ProblemID)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get the problem: %s from the database", submission.ProblemID)
 	}
 
 	//We take the submission from the aws s3 repository
-	s3Submission, err := submissionWrapper.S3Repo.GetSubmission(submission.ProblemID.String(), submissionId.String())
+	s3Submission, err := submissionWrapper.S3Repo.GetSubmission(problem.ProblemTitle, submissionId)
 	if err != nil {
 		return errors.Wrapf(err, "Error trying to download submission: %s from s3", submissionId)
 	}
 
-	if err = submissionWrapper.S3Repo.DownloadTests(problem.Id.String()); err != nil {
-		return errors.Wrapf(err, "Could sync the files for the problem: %s", problem.Id.String())
+	if err = submissionWrapper.S3Repo.DownloadTests(problem.ProblemTitle); err != nil {
+		return errors.Wrapf(err, "Couldn't sync the files for the problem: %s", problem.Id)
 	}
 
 	//We set the correct code runner, according to the programming language that the solution was written in
@@ -95,14 +59,15 @@ func (submissionWrapper *SubmissionWrapper) RunSubmission(submissionId uuid.UUID
 		return fmt.Errorf("%s is not supported as a programming language", submission.ProgrammingLanguage)
 	}
 
-	tests, err := submissionWrapper.DbRepo.GetTests(problem.Id.String())
+	tests, err := submissionWrapper.DbRepo.GetTests(submission.ProblemID)
 
 	if err != nil {
-		return fmt.Errorf("couldn't get tests cases for problem: %s", problem.Id.String())
+		return fmt.Errorf("couldn't get tests cases for problem: %s", problem.ProblemTitle)
 	}
 	solutionReq := &dtos.SolutionRequest{
 		File:        s3Submission,
 		Submission:  *submission,
+		Problem:     *problem,
 		Tests:       tests,
 		TimeOut:     problem.TimeLimit,
 		MemoryLimit: problem.MemoryLimit,
@@ -112,8 +77,39 @@ func (submissionWrapper *SubmissionWrapper) RunSubmission(submissionId uuid.UUID
 		return err
 	}
 
-	submissionWrapper.DbRepo.SaveTestResults(testResults)
+	err = submissionWrapper.DbRepo.SaveTestResults(testResults)
+
+	if err != nil {
+		return err
+	}
+
+	err = submissionWrapper.UpdateStatus(submission, testResults)
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 
+}
+
+func (submissionWrapper *SubmissionWrapper) UpdateStatus(submission *dtos.Submission, testResults []*dtos.TestResult) error {
+	passed := true
+
+	for _, testResult := range testResults {
+		if !testResult.Correct {
+			passed = false
+		}
+	}
+	if passed {
+		submission.SubmissionStatus = 2
+	}
+	submission.SubmissionStatus = 0
+
+	err := submissionWrapper.DbRepo.UpdateSubmission(*submission)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/udhos/equalfile"
 	"io"
 	"io/ioutil"
 	"os"
@@ -33,14 +32,14 @@ func NewJavaSubmissionRunner(repository *repositories.FilesRepository) *JavaSubm
 
 func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *dtos.SolutionRequest) ([]*dtos.TestResult, error) {
 	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
-	err := javaSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID.String(), JavaFileName, solutionReq.File)
+	err := javaSubmissionRunner.FilesRepository.SaveFile(solutionReq.Problem.ProblemTitle, JavaFileName, solutionReq.File)
 
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		err := javaSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID.String(), JavaFileName)
+		err := javaSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Problem.ProblemTitle, JavaFileName)
 		if err != nil {
 			logrus.WithError(err).Warnf("Could not delete file")
 		}
@@ -53,7 +52,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *dto
 	}
 
 	defer func() {
-		err := javaSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID.String(), JavaClassName)
+		err := javaSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Problem.ProblemTitle, JavaClassName)
 		if err != nil {
 			logrus.WithError(err).Warnf("Could not delete file")
 		}
@@ -61,9 +60,9 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *dto
 
 	var results []*dtos.TestResult
 	for _, test := range solutionReq.Tests {
-
 		result, err := javaSubmissionRunner.RunTest(&dtos.RunTestRequest{
 			Submission:     solutionReq.Submission,
+			Problem:        solutionReq.Problem,
 			Test:           test,
 			OutputFileName: uuid.New().String(),
 		})
@@ -82,24 +81,24 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *dto
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *dtos.RunTestRequest) (*dtos.TestResult, error) {
-	inputFile, err := javaSubmissionRunner.FilesRepository.OpenFile(request.Submission.ProblemID.String(), request.Test.InputFileName)
+	inputFile, err := javaSubmissionRunner.FilesRepository.OpenFile(request.Problem.ProblemTitle, request.Test.InputFileName)
 	if err != nil {
 		return nil, err
 	}
 
 	defer inputFile.Close()
 
-	outputFile, err := javaSubmissionRunner.FilesRepository.CreateFile(request.Submission.ProblemID.String(), request.OutputFileName)
+	outputFile, err := javaSubmissionRunner.FilesRepository.CreateFile(request.Problem.ProblemTitle, request.OutputFileName)
 
 	if err != nil {
 		return nil, err
 	}
 	defer outputFile.Close()
 
-	testRunDetails, err := javaSubmissionRunner.executeProgram(request.Submission, inputFile, outputFile)
+	testRunDetails, err := javaSubmissionRunner.executeProgram(request.Problem, inputFile, outputFile)
 
 	defer func() {
-		if err := javaSubmissionRunner.FilesRepository.DeleteFile(request.Submission.ProblemID.String(), request.OutputFileName); err != nil {
+		if err := javaSubmissionRunner.FilesRepository.DeleteFile(request.Problem.ProblemTitle, request.OutputFileName); err != nil {
 			logrus.WithError(err).Errorf("Could not delete output file: %s", request.OutputFileName)
 		}
 
@@ -107,24 +106,23 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *dtos.RunTestR
 	if err != nil {
 		return nil, err
 	}
-
-	areTheSame, err := javaSubmissionRunner.compareOutput(request.Submission.ProblemID.String(), request.Test.ExpectedOutputFileName, request.OutputFileName)
+	areTheSame, err := javaSubmissionRunner.compareOutput(request.Problem.ProblemTitle, request.Test.ExpectedOutputFileName, request.OutputFileName)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return &dtos.TestResult{
-		Id:                 uuid.New(),
-		Correct:            areTheSame,
-		TimeElapsed:        testRunDetails.ExecutionTime,
-		MemoryUsed:         testRunDetails.MemoryUsage,
-		ErrorMessage:       "nil",
-		ResultSubmissionId: request.Submission.Id,
+		Id:           uuid.New().String(),
+		Correct:      areTheSame,
+		TimeElapsed:  testRunDetails.ExecutionTime,
+		MemoryUsed:   testRunDetails.MemoryUsage,
+		ErrorMessage: "nil",
+		SubmissionId: request.Submission.Id,
 	}, nil
 }
 
-func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos.Submission, stDin io.ReadCloser, stdOut io.WriteCloser) (*dtos.SolutionResult, error) {
+func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(problem dtos.Problem, stDin io.ReadCloser, stdOut io.WriteCloser) (*dtos.SolutionResult, error) {
 
 	defer stdOut.Close()
 	defer stDin.Close()
@@ -135,16 +133,14 @@ func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos
 		return nil, err
 	}
 
-	if err := os.Chdir(javaSubmissionRunner.FilesRepository.GetDirPath(submission.ProblemID.String())); err != nil {
+	if err := os.Chdir(javaSubmissionRunner.FilesRepository.GetDirPath(problem.ProblemTitle)); err != nil {
 		return nil, err
 	}
-
 	defer func() {
 		if err = os.Chdir(parentDirectory); err != nil {
 			logrus.WithError(err).Errorf("Could not go back to parent directory %s", parentDirectory)
 		}
 	}()
-
 	cmdConfig := dtos.CommandConfig{
 		CommandName: "java",
 		CommandArgs: []string{CompiledJavaFileName},
@@ -156,7 +152,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(submission dtos
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *dtos.SolutionRequest) (*dtos.SolutionResult, error) {
-	solutionPath := javaSubmissionRunner.FilesRepository.GetFilePath(request.Submission.ProblemID.String(), JavaFileName)
+	solutionPath := javaSubmissionRunner.FilesRepository.GetFilePath(request.Problem.ProblemTitle, JavaFileName)
 
 	cmdConfig := dtos.CommandConfig{
 		CommandName: "javac",
@@ -175,11 +171,8 @@ func (javaSubmissionRunner *JavaSubmissionRunner) compareOutput(pathDir, outPutF
 
 	defer outputPath.Close()
 	defer refPath.Close()
+	p, _ := ioutil.ReadAll(refPath)
+	q, _ := ioutil.ReadAll(outputPath)
+	return string(q) == string(p), nil
 
-	equal, err := equalfile.New(nil, equalfile.Options{}).CompareReader(outputPath, refPath)
-	if err != nil {
-		return false, err
-	}
-
-	return equal, nil
 }

@@ -28,14 +28,14 @@ func NewPythonSubmissionRunner(repository *repositories.FilesRepository) *Python
 
 func (PythonSubmissionRunner *PythonSubmissionRunner) RunSubmission(solutionReq *dtos.SolutionRequest) ([]*dtos.TestResult, error) {
 	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
-	err := PythonSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID.String(), solutionReq.Submission.Id.String()+".py", solutionReq.File)
+	err := PythonSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID, solutionReq.Submission.Id+".py", solutionReq.File)
 
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		err := PythonSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID.String(), "Solution.py")
+		err := PythonSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID, "Solution.py")
 		if err != nil {
 			logrus.WithError(err).Warnf("Could not delete file")
 		}
@@ -64,14 +64,14 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunSubmission(solutionReq 
 }
 
 func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *dtos.RunTestRequest) (*dtos.TestResult, error) {
-	inputFile, err := PythonSubmissionRunner.FilesRepository.OpenFile(request.Submission.ProblemID.String(), request.Test.InputFileName)
+	inputFile, err := PythonSubmissionRunner.FilesRepository.OpenFile(request.Submission.ProblemID, request.Test.InputFileName)
 	if err != nil {
 		return nil, err
 	}
 
 	defer inputFile.Close()
 
-	outputFile, err := PythonSubmissionRunner.FilesRepository.CreateFile(request.Submission.ProblemID.String(), request.OutputFileName)
+	outputFile, err := PythonSubmissionRunner.FilesRepository.CreateFile(request.Submission.ProblemID, request.OutputFileName)
 
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *dtos.RunT
 	testRunDetails, err := PythonSubmissionRunner.executeProgram(request.Submission, inputFile, outputFile)
 
 	defer func() {
-		if err := PythonSubmissionRunner.FilesRepository.DeleteFile(request.Submission.ProblemID.String(), request.OutputFileName); err != nil {
+		if err := PythonSubmissionRunner.FilesRepository.DeleteFile(request.Submission.ProblemID, request.OutputFileName); err != nil {
 			logrus.WithError(err).Errorf("Could not delete output file: %s", request.OutputFileName)
 		}
 
@@ -90,14 +90,14 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *dtos.RunT
 		return nil, err
 	}
 
-	areTheSame, err := PythonSubmissionRunner.compareOutput(request.Submission.ProblemID.String(), request.Test.ExpectedOutputFileName, request.OutputFileName)
+	areTheSame, err := PythonSubmissionRunner.compareOutput(request.Submission.ProblemID, request.Test.ExpectedOutputFileName, request.OutputFileName)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return &dtos.TestResult{
-		Id:           uuid.New(),
+		Id:           uuid.New().String(),
 		Correct:      areTheSame,
 		TimeElapsed:  testRunDetails.ExecutionTime,
 		MemoryUsed:   testRunDetails.MemoryUsage,
@@ -116,7 +116,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(submission 
 		return nil, err
 	}
 
-	if err := os.Chdir(PythonSubmissionRunner.FilesRepository.GetDirPath(submission.ProblemID.String())); err != nil {
+	if err := os.Chdir(PythonSubmissionRunner.FilesRepository.GetDirPath(submission.ProblemID)); err != nil {
 		return nil, err
 	}
 

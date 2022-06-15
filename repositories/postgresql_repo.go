@@ -48,8 +48,8 @@ func initTables() *gorm.DB {
 	return db
 }
 
-func (postgresSQLRepo *PostgresSQLRepo) updateSubmission(submission dtos.Submission) error {
-	if err := postgresSQLRepo.db.Model(&dtos.Submission{}).Where("id = ?", submission.Id).Update("programming_language", submission.ProgrammingLanguage).Error; err != nil {
+func (postgresSQLRepo *PostgresSQLRepo) UpdateSubmission(submission dtos.Submission) error {
+	if err := postgresSQLRepo.db.Model(&dtos.Submission{}).Where("id = ?", submission.Id).Update("submission_status", submission.SubmissionStatus).Error; err != nil {
 		return errors.Wrapf(err, "Couldn't update the field: , for the submission: %s", submission.Id)
 	}
 
@@ -58,6 +58,8 @@ func (postgresSQLRepo *PostgresSQLRepo) updateSubmission(submission dtos.Submiss
 
 func (postgresSQLRepo *PostgresSQLRepo) GetSubmission(submissionId string) (*dtos.Submission, error) {
 	submission := dtos.Submission{}
+	postgresSQLRepo.db.Model(&dtos.Submission{}).First(&submission)
+	fmt.Println(submission)
 	if err := postgresSQLRepo.db.Model(&dtos.Submission{}).Find(&submission, "id = ?", submissionId).Limit(1).Error; err != nil {
 		return nil, errors.Wrapf(err, "The submission with id: %s couldn't be found", submissionId)
 	}
@@ -66,7 +68,7 @@ func (postgresSQLRepo *PostgresSQLRepo) GetSubmission(submissionId string) (*dto
 
 func (postgresSQLRepo *PostgresSQLRepo) GetTests(problemId string) ([]dtos.TestCase, error) {
 	var tests []dtos.TestCase
-	if err := postgresSQLRepo.db.Model(&dtos.TestCase{}).Find(&tests, "test_problem_id = ?", problemId).Error; err != nil {
+	if err := postgresSQLRepo.db.Model(&dtos.TestCase{}).Find(&tests, "problem_id = ?", problemId).Error; err != nil {
 		return nil, errors.Wrapf(err, "The submission with id: %s couldn't be found", problemId)
 	}
 	return tests, nil

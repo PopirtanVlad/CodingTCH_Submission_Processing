@@ -55,8 +55,7 @@ func (s3Repo *S3Repository) GetSubmission(problemId, submissionId string) (io.Re
 		"File Name": submissionId,
 	}).Info("Downloading submission from s3")
 
-	filePath := fmt.Sprintf("%s/%s", problemId, submissionId)
-	fmt.Println(filePath)
+	filePath := fmt.Sprintf("submissions/%s/%s", problemId, submissionId)
 	resp, err := s3Repo.s3session.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(s3Repo.bucket),
 		Key:    aws.String(filePath),
@@ -85,8 +84,8 @@ func (s3Repo *S3Repository) deleteObject(fileName string) (resp *s3.DeleteObject
 	return resp
 }
 
-func (s3Repo *S3Repository) DownloadTests(problemId string) error {
-	s3Path := fmt.Sprintf("s3://%s/%s", s3Repo.bucket, problemId)
-	localPath := fmt.Sprintf("%s/%s", s3Repo.baseDirectory, problemId)
+func (s3Repo *S3Repository) DownloadTests(problemTitle string) error {
+	s3Path := fmt.Sprintf("s3://%s/problems/%s", s3Repo.bucket, problemTitle)
+	localPath := fmt.Sprintf("%s/%s", s3Repo.baseDirectory, problemTitle)
 	return s3Repo.s3Sync.Sync(s3Path, localPath)
 }

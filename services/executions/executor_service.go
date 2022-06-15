@@ -35,16 +35,13 @@ func NewExecutionRunner() *ExecutionRunner {
 //}
 
 func (executionRunner *ExecutionRunner) RunCommand(cmdConfig dtos.CommandConfig) (*dtos.SolutionResult, error) {
-
 	cmd := exec.Command(cmdConfig.CommandName, cmdConfig.CommandArgs...)
-
 	startTime := time.Now()
 	var errBuff bytes.Buffer
 
 	cmd.Stderr = &errBuff
 	cmd.Stdout = cmdConfig.StdOut
 	cmd.Stdin = cmdConfig.StdIn
-
 	if err := cmd.Run(); err != nil {
 		return nil, errors.Wrapf(err, "Could not run the command: %s \nError: %s", cmd.String(), errBuff.String())
 	}
