@@ -63,6 +63,7 @@ func (postgresSQLRepo *PostgresSQLRepo) GetSubmission(submissionId string) (*dto
 	if err := postgresSQLRepo.db.Model(&dtos.Submission{}).Find(&submission, "id = ?", submissionId).Limit(1).Error; err != nil {
 		return nil, errors.Wrapf(err, "The submission with id: %s couldn't be found", submissionId)
 	}
+	fmt.Println(submission)
 	return &submission, nil
 }
 
@@ -76,7 +77,9 @@ func (postgresSQLRepo *PostgresSQLRepo) GetTests(problemId string) ([]dtos.TestC
 
 func (postgresSQLRepo *PostgresSQLRepo) GetProblem(problemId string) (*dtos.Problem, error) {
 	problem := &dtos.Problem{}
-	if err := postgresSQLRepo.db.Model(&dtos.Problem{}).Find(problem, "id = ?", problemId).Limit(1).Error; err != nil {
+
+	postgresSQLRepo.db.Model(&dtos.Problem{}).First(&problem)
+	if err := postgresSQLRepo.db.Model(&dtos.Problem{}).Where("id = ?", problemId).Scan(&problem).Limit(1).Error; err != nil {
 		return nil, errors.Wrapf(err, "The problem with id: %s couldn't be found", problemId)
 	}
 
