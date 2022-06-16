@@ -133,7 +133,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(submission 
 		StdIn:       stDin,
 		StdOut:      stdOut,
 	}
-	return PythonSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig)
+	return PythonSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig, 1, 1), nil
 }
 
 func (PythonSubmissionRunner *PythonSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {

@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 const (
@@ -117,7 +118,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *dtos.RunTestR
 		Correct:      areTheSame,
 		TimeElapsed:  testRunDetails.ExecutionTime,
 		MemoryUsed:   testRunDetails.MemoryUsage,
-		ErrorMessage: "nil",
+		ErrorMessage: testRunDetails.StdErr,
 		SubmissionId: request.Submission.Id,
 	}, nil
 }
@@ -148,7 +149,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(problem dtos.Pr
 		StdIn:       stDin,
 		StdOut:      stdOut,
 	}
-	return javaSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig)
+	return javaSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig, problem.TimeLimit, problem.MemoryLimit), nil
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *dtos.SolutionRequest) (*dtos.SolutionResult, error) {
@@ -162,7 +163,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *dtos.
 		StdOut:      ioutil.Discard,
 	}
 
-	return executions.NewExecutionRunner().RunCommand(cmdConfig)
+	return executions.NewExecutionRunner().RunCommand(cmdConfig, time.Second, 100000), nil
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {

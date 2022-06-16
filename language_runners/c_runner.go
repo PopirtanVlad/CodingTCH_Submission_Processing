@@ -147,7 +147,7 @@ func (CSubmissionRunner *CSubmissionRunner) executeProgram(problem dtos.Problem,
 		StdIn:       stDin,
 		StdOut:      stdOut,
 	}
-	return CSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig)
+	return CSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig, 1, 1), nil
 }
 
 func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *dtos.SolutionRequest) (*dtos.SolutionResult, error) {
@@ -161,7 +161,7 @@ func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *dtos.Soluti
 		StdOut:      ioutil.Discard,
 	}
 
-	return executions.NewExecutionRunner().RunCommand(cmdConfig)
+	return executions.NewExecutionRunner().RunCommand(cmdConfig, 1, 1), nil
 }
 
 func (CSubmissionRunner *CSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {

@@ -58,14 +58,12 @@ func (s3Repo *S3Repository) GetSubmission(problemId, submissionId string) (io.Re
 
 	filePath := fmt.Sprintf("submissions/%s/%s", problemId, submissionId)
 	i := 0
-	fmt.Println(filePath)
 	for i < 3 {
 		resp, err := s3Repo.s3session.GetObject(&s3.GetObjectInput{
 			Bucket: aws.String(s3Repo.bucket),
 			Key:    aws.String(filePath),
 		})
 		i++
-		fmt.Println(i)
 		if err == nil {
 			return resp.Body, nil
 		} else {

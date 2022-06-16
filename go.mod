@@ -8,6 +8,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/seqsense/s3sync v1.8.2
 	github.com/sirupsen/logrus v1.8.1
+	github.com/square/inspect v1.0.2
 	github.com/streadway/amqp v1.0.0
 	github.com/udhos/equalfile v0.3.0
 	gorm.io/driver/postgres v1.3.5

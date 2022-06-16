@@ -1,7 +1,6 @@
 package dtos
 
 import (
-	"bytes"
 	"io"
 	"time"
 )
@@ -9,7 +8,7 @@ import (
 type SolutionResult struct {
 	ExecutionTime time.Duration
 	MemoryUsage   uint64
-	StdErr        *bytes.Buffer
+	StdErr        string
 	ExitCode      int
 }
 

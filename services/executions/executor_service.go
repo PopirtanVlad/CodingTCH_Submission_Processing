@@ -1,11 +1,9 @@
 package executions
 
 import (
-	"Licenta_Processing_Service/custom_errors"
 	"Licenta_Processing_Service/dtos"
 	"bytes"
 	_ "fmt"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	_ "os"
 	"os/exec"
@@ -13,28 +11,13 @@ import (
 )
 
 type ExecutionRunner struct {
-	timeLimit   time.Duration
-	memoryLimit int
 }
 
 func NewExecutionRunner() *ExecutionRunner {
-	return &ExecutionRunner{
-		timeLimit:   3000009900,
-		memoryLimit: 30,
-	}
+	return &ExecutionRunner{}
 }
 
-//func main() {
-//	_, err := NewExecutionRunner().runSolution(dtos.CommandConfig{
-//		CommandArgs: []string{"hello_world.py", "1", "2"},
-//		CommandName: "py",
-//	})
-//	if err == custom_errors.TimeLimitExceededError {
-//		fmt.Println(err)
-//	}
-//}
-
-func (executionRunner *ExecutionRunner) RunCommand(cmdConfig dtos.CommandConfig) (*dtos.SolutionResult, error) {
+func (executionRunner *ExecutionRunner) RunCommand(cmdConfig dtos.CommandConfig, timeLimit time.Duration, memoryLimit uint64) *dtos.SolutionResult {
 	cmd := exec.Command(cmdConfig.CommandName, cmdConfig.CommandArgs...)
 	startTime := time.Now()
 	var errBuff bytes.Buffer
@@ -43,29 +26,45 @@ func (executionRunner *ExecutionRunner) RunCommand(cmdConfig dtos.CommandConfig)
 	cmd.Stdout = cmdConfig.StdOut
 	cmd.Stdin = cmdConfig.StdIn
 	if err := cmd.Run(); err != nil {
-		return nil, errors.Wrapf(err, "Could not run the command: %s \nError: %s", cmd.String(), errBuff.String())
+		return &dtos.SolutionResult{
+			ExecutionTime: 0,
+			MemoryUsage:   0,
+			StdErr:        err.Error(),
+			ExitCode:      0,
+		} //errors.Wrapf(err, "Could not run the command: %s \nError: %s", cmd.String(), errBuff.String())
 	}
 
-	cmd.Wait()
+	err := cmd.Wait()
 	endTime := time.Since(startTime)
-	if endTime > executionRunner.timeLimit {
+	var exitCode int
+
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode = exitErr.ExitCode()
+		}
+	}
+
+	if endTime > timeLimit {
 		logrus.WithFields(logrus.Fields{
-			"Time limit":  executionRunner.timeLimit,
+			"Time limit":  timeLimit,
 			"Actual time": endTime,
 		}).Debugf("Time limit exceeded")
-		return nil, custom_errors.TimeLimitExceededError
+		return executionRunner.returnTLE(endTime, 0)
 	}
 
-	//if memoryUsed > executionRunner.memoryLimit {
-	//	logrus.WithFields(logrus.Fields{
-	//		"Memory limit":       executionRunner.memoryLimit,
-	//		"Actual memory used": memoryUsed,
-	//	}).Debugf("Memory limit exceeded")
-	//	return nil, custom_errors.MemoryLimitExceededError
-	//}
-
 	return &dtos.SolutionResult{
-		//MemoryUsage: memoryUsed
+		StdErr:        "NaN",
+		MemoryUsage:   0,
 		ExecutionTime: endTime,
-	}, nil
+		ExitCode:      exitCode,
+	}
+}
+
+func (e *ExecutionRunner) returnTLE(timeElapsed time.Duration, maxMemory uint64) *dtos.SolutionResult {
+	return &dtos.SolutionResult{
+		StdErr:        "Time limit exceeded",
+		ExecutionTime: timeElapsed,
+		MemoryUsage:   maxMemory,
+		ExitCode:      0,
+	}
 }
