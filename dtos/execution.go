@@ -11,7 +11,6 @@ type SolutionResult struct {
 	MemoryUsage   uint64
 	StdErr        *bytes.Buffer
 	ExitCode      int
-	Error         error
 }
 
 type RunTestRequest struct {

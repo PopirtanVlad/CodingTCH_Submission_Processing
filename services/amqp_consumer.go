@@ -4,6 +4,7 @@ import (
 	"Licenta_Processing_Service/language_runners"
 	"github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
+	"strings"
 )
 
 type RabbitMQConfig struct {
@@ -78,14 +79,14 @@ func (rabbitMQConsumer *RabbitMQConsumer) AcceptMessages() error {
 		return err
 	}
 
-	ch.QueueDeclare(
-		rabbitMQConsumer.queueName,
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
+	//ch.QueueDeclare(
+	//	rabbitMQConsumer.queueName,
+	//	true,
+	//	false,
+	//	false,
+	//	false,
+	//	nil,
+	//)
 
 	messages, err := ch.Consume(
 		rabbitMQConsumer.queueName, //queue name
@@ -107,7 +108,7 @@ func (rabbitMQConsumer *RabbitMQConsumer) AcceptMessages() error {
 
 	go func() {
 		for message := range messages {
-			rabbitMQConsumer.handleMessageReceived(string(message.Body))
+			rabbitMQConsumer.handleMessageReceived(strings.Trim(string(message.Body), "\""))
 		}
 	}()
 

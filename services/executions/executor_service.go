@@ -67,6 +67,5 @@ func (executionRunner *ExecutionRunner) RunCommand(cmdConfig dtos.CommandConfig)
 	return &dtos.SolutionResult{
 		//MemoryUsage: memoryUsed
 		ExecutionTime: endTime,
-		Error:         nil,
 	}, nil
 }

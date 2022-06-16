@@ -97,15 +97,14 @@ func (submissionWrapper *SubmissionWrapper) UpdateStatus(submission *dtos.Submis
 	passed := true
 
 	for _, testResult := range testResults {
-		if !testResult.Correct {
+		if testResult.Correct == false {
 			passed = false
 		}
 	}
-	if passed {
+	submission.SubmissionStatus = 0
+	if passed == true {
 		submission.SubmissionStatus = 2
 	}
-	submission.SubmissionStatus = 0
-
 	err := submissionWrapper.DbRepo.UpdateSubmission(*submission)
 	if err != nil {
 		return err

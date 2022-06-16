@@ -5,6 +5,7 @@ import (
 	"Licenta_Processing_Service/language_runners"
 	"Licenta_Processing_Service/repositories"
 	"Licenta_Processing_Service/services"
+	"fmt"
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 		Password:          "Knh0-TwtXSPvv_1lqJoC-u92ZfHzFaVk",
 		HostName:          "roedeer.rmq.cloudamqp.com",
 		Port:              5672,
-		QueueName:         "YES",
+		QueueName:         "Licenta_Queue",
 		SubmissionWrapper: submissionRunner,
 	}
 
@@ -38,6 +39,7 @@ func main() {
 	}
 	err = rmq.AcceptMessages()
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 }
