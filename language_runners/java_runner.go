@@ -1,7 +1,7 @@
 package language_runners
 
 import (
-	"Licenta_Processing_Service/dtos"
+	"Licenta_Processing_Service/entities"
 	"Licenta_Processing_Service/repositories"
 	"Licenta_Processing_Service/services/executions"
 	"fmt"
@@ -26,12 +26,12 @@ type JavaSubmissionRunner struct {
 
 func NewJavaSubmissionRunner(repository *repositories.FilesRepository) *JavaSubmissionRunner {
 	return &JavaSubmissionRunner{
-		ExecutionRunner: *executions.NewExecutionRunner(),
+		ExecutionRunner: *executions.NewExecutionRunner(50),
 		FilesRepository: repository,
 	}
 }
 
-func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *dtos.SolutionRequest) ([]*dtos.TestResult, error) {
+func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *entities.SolutionRequest) ([]*entities.TestResult, error) {
 	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
 	err := javaSubmissionRunner.FilesRepository.SaveFile(solutionReq.Problem.ProblemTitle, JavaFileName, solutionReq.File)
 
@@ -58,10 +58,9 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *dto
 			logrus.WithError(err).Warnf("Could not delete file")
 		}
 	}()
-
-	var results []*dtos.TestResult
+	var results []*entities.TestResult
 	for _, test := range solutionReq.Tests {
-		result, err := javaSubmissionRunner.RunTest(&dtos.RunTestRequest{
+		result, err := javaSubmissionRunner.RunTest(&entities.RunTestRequest{
 			Submission:     solutionReq.Submission,
 			Problem:        solutionReq.Problem,
 			Test:           test,
@@ -81,7 +80,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *dto
 	return results, nil
 }
 
-func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *dtos.RunTestRequest) (*dtos.TestResult, error) {
+func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *entities.RunTestRequest) (*entities.TestResult, error) {
 	inputFile, err := javaSubmissionRunner.FilesRepository.OpenFile(request.Problem.ProblemTitle, request.Test.InputFileName)
 	if err != nil {
 		return nil, err
@@ -113,7 +112,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *dtos.RunTestR
 		return nil, err
 	}
 
-	return &dtos.TestResult{
+	return &entities.TestResult{
 		Id:           uuid.New().String(),
 		Correct:      areTheSame,
 		TimeElapsed:  testRunDetails.ExecutionTime,
@@ -123,7 +122,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) RunTest(request *dtos.RunTestR
 	}, nil
 }
 
-func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(problem dtos.Problem, stDin io.ReadCloser, stdOut io.WriteCloser) (*dtos.SolutionResult, error) {
+func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(problem entities.Problem, stDin io.ReadCloser, stdOut io.WriteCloser) (*entities.SolutionResult, error) {
 
 	defer stdOut.Close()
 	defer stDin.Close()
@@ -142,7 +141,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(problem dtos.Pr
 			logrus.WithError(err).Errorf("Could not go back to parent directory %s", parentDirectory)
 		}
 	}()
-	cmdConfig := dtos.CommandConfig{
+	cmdConfig := entities.CommandConfig{
 		CommandName: "java",
 		CommandArgs: []string{CompiledJavaFileName},
 		TimeOut:     2,
@@ -152,10 +151,10 @@ func (javaSubmissionRunner *JavaSubmissionRunner) executeProgram(problem dtos.Pr
 	return javaSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig, problem.TimeLimit, problem.MemoryLimit), nil
 }
 
-func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *dtos.SolutionRequest) (*dtos.SolutionResult, error) {
+func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *entities.SolutionRequest) (*entities.SolutionResult, error) {
 	solutionPath := javaSubmissionRunner.FilesRepository.GetFilePath(request.Problem.ProblemTitle, JavaFileName)
 
-	cmdConfig := dtos.CommandConfig{
+	cmdConfig := entities.CommandConfig{
 		CommandName: "javac",
 		CommandArgs: []string{solutionPath},
 		TimeOut:     30000,
@@ -163,7 +162,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *dtos.
 		StdOut:      ioutil.Discard,
 	}
 
-	return executions.NewExecutionRunner().RunCommand(cmdConfig, time.Second, 100000), nil
+	return executions.NewExecutionRunner(50).RunCommand(cmdConfig, time.Second, 100000), nil
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {

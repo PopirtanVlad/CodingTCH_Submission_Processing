@@ -1,7 +1,7 @@
 package language_runners
 
 import (
-	"Licenta_Processing_Service/dtos"
+	"Licenta_Processing_Service/entities"
 	"Licenta_Processing_Service/repositories"
 	"Licenta_Processing_Service/services/executions"
 	"fmt"
@@ -21,12 +21,12 @@ type PythonSubmissionRunner struct {
 
 func NewPythonSubmissionRunner(repository *repositories.FilesRepository) *PythonSubmissionRunner {
 	return &PythonSubmissionRunner{
-		ExecutionRunner: *executions.NewExecutionRunner(),
+		ExecutionRunner: *executions.NewExecutionRunner(50),
 		FilesRepository: repository,
 	}
 }
 
-func (PythonSubmissionRunner *PythonSubmissionRunner) RunSubmission(solutionReq *dtos.SolutionRequest) ([]*dtos.TestResult, error) {
+func (PythonSubmissionRunner *PythonSubmissionRunner) RunSubmission(solutionReq *entities.SolutionRequest) ([]*entities.TestResult, error) {
 	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
 	err := PythonSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID, solutionReq.Submission.Id+".py", solutionReq.File)
 
@@ -41,10 +41,10 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunSubmission(solutionReq 
 		}
 	}()
 
-	var results []*dtos.TestResult
+	var results []*entities.TestResult
 	for _, test := range solutionReq.Tests {
 
-		result, err := PythonSubmissionRunner.RunTest(&dtos.RunTestRequest{
+		result, err := PythonSubmissionRunner.RunTest(&entities.RunTestRequest{
 			Submission:     solutionReq.Submission,
 			Test:           test,
 			OutputFileName: uuid.New().String(),
@@ -63,7 +63,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunSubmission(solutionReq 
 	return results, nil
 }
 
-func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *dtos.RunTestRequest) (*dtos.TestResult, error) {
+func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *entities.RunTestRequest) (*entities.TestResult, error) {
 	inputFile, err := PythonSubmissionRunner.FilesRepository.OpenFile(request.Submission.ProblemID, request.Test.InputFileName)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *dtos.RunT
 		return nil, err
 	}
 
-	return &dtos.TestResult{
+	return &entities.TestResult{
 		Id:           uuid.New().String(),
 		Correct:      areTheSame,
 		TimeElapsed:  testRunDetails.ExecutionTime,
@@ -105,7 +105,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *dtos.RunT
 	}, nil
 }
 
-func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(submission dtos.Submission, stDin io.ReadCloser, stdOut io.WriteCloser) (*dtos.SolutionResult, error) {
+func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(submission entities.Submission, stDin io.ReadCloser, stdOut io.WriteCloser) (*entities.SolutionResult, error) {
 
 	defer stdOut.Close()
 	defer stDin.Close()
@@ -126,7 +126,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(submission 
 		}
 	}()
 
-	cmdConfig := dtos.CommandConfig{
+	cmdConfig := entities.CommandConfig{
 		CommandName: "py",
 		CommandArgs: []string{PY_FILE_NAME},
 		TimeOut:     2,

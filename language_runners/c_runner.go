@@ -1,7 +1,7 @@
 package language_runners
 
 import (
-	"Licenta_Processing_Service/dtos"
+	"Licenta_Processing_Service/entities"
 	"Licenta_Processing_Service/repositories"
 	"Licenta_Processing_Service/services/executions"
 	"fmt"
@@ -22,12 +22,12 @@ type CSubmissionRunner struct {
 
 func NewCSubmissionRunner(repository *repositories.FilesRepository) *CSubmissionRunner {
 	return &CSubmissionRunner{
-		ExecutionRunner: *executions.NewExecutionRunner(),
+		ExecutionRunner: *executions.NewExecutionRunner(50),
 		FilesRepository: repository,
 	}
 }
 
-func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *dtos.SolutionRequest) ([]*dtos.TestResult, error) {
+func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *entities.SolutionRequest) ([]*entities.TestResult, error) {
 	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
 	err := CSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID, solutionReq.Submission.Id+".c", solutionReq.File)
 
@@ -55,10 +55,10 @@ func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *dtos.Solu
 		}
 	}()
 
-	var results []*dtos.TestResult
+	var results []*entities.TestResult
 	for _, test := range solutionReq.Tests {
 
-		result, err := CSubmissionRunner.RunTest(&dtos.RunTestRequest{
+		result, err := CSubmissionRunner.RunTest(&entities.RunTestRequest{
 			Submission:     solutionReq.Submission,
 			Test:           test,
 			OutputFileName: uuid.New().String(),
@@ -77,7 +77,7 @@ func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *dtos.Solu
 	return results, nil
 }
 
-func (CSubmissionRunner *CSubmissionRunner) RunTest(request *dtos.RunTestRequest) (*dtos.TestResult, error) {
+func (CSubmissionRunner *CSubmissionRunner) RunTest(request *entities.RunTestRequest) (*entities.TestResult, error) {
 	inputFile, err := CSubmissionRunner.FilesRepository.OpenFile(request.Submission.ProblemID, request.Test.InputFileName)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (CSubmissionRunner *CSubmissionRunner) RunTest(request *dtos.RunTestRequest
 		return nil, err
 	}
 
-	return &dtos.TestResult{
+	return &entities.TestResult{
 		Id:           uuid.New().String(),
 		Correct:      areTheSame,
 		TimeElapsed:  testRunDetails.ExecutionTime,
@@ -119,7 +119,7 @@ func (CSubmissionRunner *CSubmissionRunner) RunTest(request *dtos.RunTestRequest
 	}, nil
 }
 
-func (CSubmissionRunner *CSubmissionRunner) executeProgram(problem dtos.Problem, stDin io.ReadCloser, stdOut io.WriteCloser) (*dtos.SolutionResult, error) {
+func (CSubmissionRunner *CSubmissionRunner) executeProgram(problem entities.Problem, stDin io.ReadCloser, stdOut io.WriteCloser) (*entities.SolutionResult, error) {
 
 	defer stdOut.Close()
 	defer stDin.Close()
@@ -140,7 +140,7 @@ func (CSubmissionRunner *CSubmissionRunner) executeProgram(problem dtos.Problem,
 		}
 	}()
 
-	cmdConfig := dtos.CommandConfig{
+	cmdConfig := entities.CommandConfig{
 		CommandName: "./" + COMPILED_C_FILE_NAME,
 		CommandArgs: []string{},
 		TimeOut:     2,
@@ -150,10 +150,10 @@ func (CSubmissionRunner *CSubmissionRunner) executeProgram(problem dtos.Problem,
 	return CSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig, 1, 1), nil
 }
 
-func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *dtos.SolutionRequest) (*dtos.SolutionResult, error) {
+func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *entities.SolutionRequest) (*entities.SolutionResult, error) {
 	solutionPath := CSubmissionRunner.FilesRepository.GetFilePath(request.Submission.ProblemID, request.Submission.Id+".c")
 
-	cmdConfig := dtos.CommandConfig{
+	cmdConfig := entities.CommandConfig{
 		CommandName: "gcc",
 		CommandArgs: []string{solutionPath, "-o", COMPILED_C_FILE_NAME},
 		TimeOut:     1400000,
@@ -161,7 +161,7 @@ func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *dtos.Soluti
 		StdOut:      ioutil.Discard,
 	}
 
-	return executions.NewExecutionRunner().RunCommand(cmdConfig, 1, 1), nil
+	return executions.NewExecutionRunner(50).RunCommand(cmdConfig, 1, 1), nil
 }
 
 func (CSubmissionRunner *CSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {

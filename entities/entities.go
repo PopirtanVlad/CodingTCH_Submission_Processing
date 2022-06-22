@@ -1,4 +1,4 @@
-package dtos
+package entities
 
 import (
 	"time"
@@ -18,7 +18,6 @@ type Problem struct {
 	ProblemDifficulty    ProblemDifficulty //`gorm:"column:problem_difficulty"`
 	ProblemExampleInput  string            //`gorm:"column:problem_example_input"`
 	ProblemExampleOutput string            //`gorm:"column:problem_example_output"`
-	ProblemStatement     string            //`gorm:"column:problem_statement"`
 	ProblemTitle         string            //`gorm:"column:problem_title"`
 	TimeLimit            time.Duration     //`gorm:"column:time_limit"`
 	MemoryLimit          uint64            //`gorm:"column:memory_limit"`

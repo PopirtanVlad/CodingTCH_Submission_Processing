@@ -1,4 +1,4 @@
-package dtos
+package entities
 
 type ProgrammingLanguage int
 type ProblemDifficulty string

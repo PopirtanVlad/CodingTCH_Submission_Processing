@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"Licenta_Processing_Service/dtos"
+	"Licenta_Processing_Service/entities"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -21,7 +21,7 @@ type S3Repository struct {
 	bucket        string
 }
 
-func NewS3Repository(conf dtos.AWSConfig) *S3Repository {
+func NewS3Repository(conf entities.AWSConfig) *S3Repository {
 	s3session := session.Must(session.NewSession(&aws.Config{Region: aws.String(conf.AWSRegion)}))
 	return &S3Repository{
 		s3session:     s3.New(s3session),

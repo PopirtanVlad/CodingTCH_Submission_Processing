@@ -1,7 +1,7 @@
 package language_runners
 
 import (
-	"Licenta_Processing_Service/dtos"
+	"Licenta_Processing_Service/entities"
 	"Licenta_Processing_Service/repositories"
 
 	"fmt"
@@ -12,14 +12,14 @@ type SubmissionWrapperConf struct {
 	FileRepository  *repositories.FilesRepository
 	DbRepo          *repositories.PostgresSQLRepo
 	S3Repo          *repositories.S3Repository
-	LanguageRunners map[dtos.ProgrammingLanguage]LanguageRunner
+	LanguageRunners map[entities.ProgrammingLanguage]LanguageRunner
 }
 
 type SubmissionWrapper struct {
 	FileRepository  *repositories.FilesRepository
 	DbRepo          *repositories.PostgresSQLRepo
 	S3Repo          *repositories.S3Repository
-	LanguageRunners map[dtos.ProgrammingLanguage]LanguageRunner
+	LanguageRunners map[entities.ProgrammingLanguage]LanguageRunner
 }
 
 func NewSubmissionWrapper(config *SubmissionWrapperConf) *SubmissionWrapper {
@@ -64,7 +64,7 @@ func (submissionWrapper *SubmissionWrapper) RunSubmission(submissionId string) e
 	if err != nil {
 		return fmt.Errorf("couldn't get tests cases for problem: %s", problem.ProblemTitle)
 	}
-	solutionReq := &dtos.SolutionRequest{
+	solutionReq := &entities.SolutionRequest{
 		File:        s3Submission,
 		Submission:  *submission,
 		Problem:     *problem,
@@ -93,7 +93,7 @@ func (submissionWrapper *SubmissionWrapper) RunSubmission(submissionId string) e
 
 }
 
-func (submissionWrapper *SubmissionWrapper) UpdateStatus(submission *dtos.Submission, testResults []*dtos.TestResult) error {
+func (submissionWrapper *SubmissionWrapper) UpdateStatus(submission *entities.Submission, testResults []*entities.TestResult) error {
 	passed := true
 
 	for _, testResult := range testResults {

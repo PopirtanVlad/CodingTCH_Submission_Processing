@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Licenta_Processing_Service/dtos"
+	"Licenta_Processing_Service/entities"
 	"Licenta_Processing_Service/language_runners"
 	"Licenta_Processing_Service/repositories"
 	"Licenta_Processing_Service/services"
@@ -15,9 +15,9 @@ func main() {
 	submissionRunner := language_runners.NewSubmissionWrapper(&language_runners.SubmissionWrapperConf{
 		FileRepository: fileRepository,
 		DbRepo:         dbRepo,
-		S3Repo: repositories.NewS3Repository(dtos.AWSConfig{
+		S3Repo: repositories.NewS3Repository(entities.AWSConfig{
 			AWSRegion:     "eu-central-1",
-			AWSBucketName: "vladbucket123",
+			AWSBucketName: "lictestbucket1",
 			BaseLocalDir:  "problems",
 		}),
 		LanguageRunners: initLanguageRunners(fileRepository),
@@ -44,11 +44,11 @@ func main() {
 	}
 }
 
-func initLanguageRunners(fileRepo *repositories.FilesRepository) map[dtos.ProgrammingLanguage]language_runners.LanguageRunner {
+func initLanguageRunners(fileRepo *repositories.FilesRepository) map[entities.ProgrammingLanguage]language_runners.LanguageRunner {
 
-	return map[dtos.ProgrammingLanguage]language_runners.LanguageRunner{
-		dtos.C:       language_runners.NewCSubmissionRunner(fileRepo),
-		dtos.Java:    language_runners.NewJavaSubmissionRunner(fileRepo),
-		dtos.Python3: language_runners.NewPythonSubmissionRunner(fileRepo),
+	return map[entities.ProgrammingLanguage]language_runners.LanguageRunner{
+		entities.C:       language_runners.NewCSubmissionRunner(fileRepo),
+		entities.Java:    language_runners.NewJavaSubmissionRunner(fileRepo),
+		entities.Python3: language_runners.NewPythonSubmissionRunner(fileRepo),
 	}
 }
