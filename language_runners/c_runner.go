@@ -13,7 +13,10 @@ import (
 	"os"
 )
 
-var COMPILED_C_FILE_NAME = "Solution.exe"
+const (
+	CFileName         = "Solution.c"
+	CompiledCFileName = "Solution.exe"
+)
 
 type CSubmissionRunner struct {
 	ExecutionRunner executions.ExecutionRunner
@@ -29,14 +32,14 @@ func NewCSubmissionRunner(repository *repositories.FilesRepository) *CSubmission
 
 func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *entities.SolutionRequest) ([]*entities.TestResult, error) {
 	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
-	err := CSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID, solutionReq.Submission.Id+".c", solutionReq.File)
+	err := CSubmissionRunner.FilesRepository.SaveFile(solutionReq.Problem.ProblemTitle, CFileName, solutionReq.File)
 
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		err := CSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID, solutionReq.Submission.Id+".c")
+		err := CSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Problem.ProblemTitle, CFileName)
 		if err != nil {
 			logrus.WithError(err).Warnf("Could not delete file")
 		}
@@ -49,7 +52,7 @@ func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *entities.
 	}
 
 	defer func() {
-		err := CSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID, "Solution.exe")
+		err := CSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Problem.ProblemTitle, CompiledCFileName)
 		if err != nil {
 			logrus.WithError(err).Warnf("Could not delete file")
 		}
@@ -60,6 +63,7 @@ func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *entities.
 
 		result, err := CSubmissionRunner.RunTest(&entities.RunTestRequest{
 			Submission:     solutionReq.Submission,
+			Problem:        solutionReq.Problem,
 			Test:           test,
 			OutputFileName: uuid.New().String(),
 		})
@@ -78,14 +82,14 @@ func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *entities.
 }
 
 func (CSubmissionRunner *CSubmissionRunner) RunTest(request *entities.RunTestRequest) (*entities.TestResult, error) {
-	inputFile, err := CSubmissionRunner.FilesRepository.OpenFile(request.Submission.ProblemID, request.Test.InputFileName)
+	inputFile, err := CSubmissionRunner.FilesRepository.OpenFile(request.Problem.ProblemTitle, request.Test.InputFileName)
 	if err != nil {
 		return nil, err
 	}
 
 	defer inputFile.Close()
 
-	outputFile, err := CSubmissionRunner.FilesRepository.CreateFile(request.Submission.ProblemID, request.OutputFileName)
+	outputFile, err := CSubmissionRunner.FilesRepository.CreateFile(request.Problem.ProblemTitle, request.OutputFileName)
 
 	if err != nil {
 		return nil, err
@@ -95,7 +99,7 @@ func (CSubmissionRunner *CSubmissionRunner) RunTest(request *entities.RunTestReq
 	testRunDetails, err := CSubmissionRunner.executeProgram(request.Problem, inputFile, outputFile)
 
 	defer func() {
-		if err := CSubmissionRunner.FilesRepository.DeleteFile(request.Submission.ProblemID, request.OutputFileName); err != nil {
+		if err := CSubmissionRunner.FilesRepository.DeleteFile(request.Problem.ProblemTitle, request.OutputFileName); err != nil {
 			logrus.WithError(err).Errorf("Could not delete output file: %s", request.OutputFileName)
 		}
 
@@ -104,7 +108,7 @@ func (CSubmissionRunner *CSubmissionRunner) RunTest(request *entities.RunTestReq
 		return nil, err
 	}
 
-	areTheSame, err := CSubmissionRunner.compareOutput(request.Submission.ProblemID, request.Test.ExpectedOutputFileName, request.OutputFileName)
+	areTheSame, err := CSubmissionRunner.compareOutput(request.Problem.ProblemTitle, request.Test.ExpectedOutputFileName, request.OutputFileName)
 
 	if err != nil {
 		return nil, err
@@ -115,7 +119,8 @@ func (CSubmissionRunner *CSubmissionRunner) RunTest(request *entities.RunTestReq
 		Correct:      areTheSame,
 		TimeElapsed:  testRunDetails.ExecutionTime,
 		MemoryUsed:   testRunDetails.MemoryUsage,
-		ErrorMessage: "nil",
+		ErrorMessage: testRunDetails.StdErr,
+		SubmissionId: request.Submission.Id,
 	}, nil
 }
 
@@ -141,7 +146,7 @@ func (CSubmissionRunner *CSubmissionRunner) executeProgram(problem entities.Prob
 	}()
 
 	cmdConfig := entities.CommandConfig{
-		CommandName: "./" + COMPILED_C_FILE_NAME,
+		CommandName: "./" + CompiledCFileName,
 		CommandArgs: []string{},
 		TimeOut:     2,
 		StdIn:       stDin,
@@ -151,11 +156,11 @@ func (CSubmissionRunner *CSubmissionRunner) executeProgram(problem entities.Prob
 }
 
 func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *entities.SolutionRequest) (*entities.SolutionResult, error) {
-	solutionPath := CSubmissionRunner.FilesRepository.GetFilePath(request.Submission.ProblemID, request.Submission.Id+".c")
+	solutionPath := CSubmissionRunner.FilesRepository.GetFilePath(request.Problem.ProblemTitle, CFileName)
 
 	cmdConfig := entities.CommandConfig{
 		CommandName: "gcc",
-		CommandArgs: []string{solutionPath, "-o", COMPILED_C_FILE_NAME},
+		CommandArgs: []string{solutionPath, "-o", CompiledCFileName},
 		TimeOut:     1400000,
 		StdIn:       nil,
 		StdOut:      ioutil.Discard,

@@ -12,7 +12,7 @@ import (
 	"os"
 )
 
-var PY_FILE_NAME = "Solution.py"
+var PyFileName = "Solution.py"
 
 type PythonSubmissionRunner struct {
 	ExecutionRunner executions.ExecutionRunner
@@ -27,15 +27,14 @@ func NewPythonSubmissionRunner(repository *repositories.FilesRepository) *Python
 }
 
 func (PythonSubmissionRunner *PythonSubmissionRunner) RunSubmission(solutionReq *entities.SolutionRequest) ([]*entities.TestResult, error) {
-	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
-	err := PythonSubmissionRunner.FilesRepository.SaveFile(solutionReq.Submission.ProblemID, solutionReq.Submission.Id+".py", solutionReq.File)
+	err := PythonSubmissionRunner.FilesRepository.SaveFile(solutionReq.Problem.ProblemTitle, PyFileName, solutionReq.File)
 
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		err := PythonSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Submission.ProblemID, "Solution.py")
+		err := PythonSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Problem.ProblemTitle, PyFileName)
 		if err != nil {
 			logrus.WithError(err).Warnf("Could not delete file")
 		}
@@ -46,6 +45,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunSubmission(solutionReq 
 
 		result, err := PythonSubmissionRunner.RunTest(&entities.RunTestRequest{
 			Submission:     solutionReq.Submission,
+			Problem:        solutionReq.Problem,
 			Test:           test,
 			OutputFileName: uuid.New().String(),
 		})
@@ -64,24 +64,24 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunSubmission(solutionReq 
 }
 
 func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *entities.RunTestRequest) (*entities.TestResult, error) {
-	inputFile, err := PythonSubmissionRunner.FilesRepository.OpenFile(request.Submission.ProblemID, request.Test.InputFileName)
+	inputFile, err := PythonSubmissionRunner.FilesRepository.OpenFile(request.Problem.ProblemTitle, request.Test.InputFileName)
 	if err != nil {
 		return nil, err
 	}
 
 	defer inputFile.Close()
 
-	outputFile, err := PythonSubmissionRunner.FilesRepository.CreateFile(request.Submission.ProblemID, request.OutputFileName)
+	outputFile, err := PythonSubmissionRunner.FilesRepository.CreateFile(request.Problem.ProblemTitle, request.OutputFileName)
 
 	if err != nil {
 		return nil, err
 	}
 	defer outputFile.Close()
 
-	testRunDetails, err := PythonSubmissionRunner.executeProgram(request.Submission, inputFile, outputFile)
+	testRunDetails, err := PythonSubmissionRunner.executeProgram(request.Problem, inputFile, outputFile)
 
 	defer func() {
-		if err := PythonSubmissionRunner.FilesRepository.DeleteFile(request.Submission.ProblemID, request.OutputFileName); err != nil {
+		if err := PythonSubmissionRunner.FilesRepository.DeleteFile(request.Problem.ProblemTitle, request.OutputFileName); err != nil {
 			logrus.WithError(err).Errorf("Could not delete output file: %s", request.OutputFileName)
 		}
 
@@ -90,7 +90,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *entities.
 		return nil, err
 	}
 
-	areTheSame, err := PythonSubmissionRunner.compareOutput(request.Submission.ProblemID, request.Test.ExpectedOutputFileName, request.OutputFileName)
+	areTheSame, err := PythonSubmissionRunner.compareOutput(request.Problem.ProblemTitle, request.Test.ExpectedOutputFileName, request.OutputFileName)
 
 	if err != nil {
 		return nil, err
@@ -101,11 +101,12 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *entities.
 		Correct:      areTheSame,
 		TimeElapsed:  testRunDetails.ExecutionTime,
 		MemoryUsed:   testRunDetails.MemoryUsage,
-		ErrorMessage: "nil",
+		ErrorMessage: testRunDetails.StdErr,
+		SubmissionId: request.Submission.Id,
 	}, nil
 }
 
-func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(submission entities.Submission, stDin io.ReadCloser, stdOut io.WriteCloser) (*entities.SolutionResult, error) {
+func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(problem entities.Problem, stDin io.ReadCloser, stdOut io.WriteCloser) (*entities.SolutionResult, error) {
 
 	defer stdOut.Close()
 	defer stDin.Close()
@@ -116,7 +117,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(submission 
 		return nil, err
 	}
 
-	if err := os.Chdir(PythonSubmissionRunner.FilesRepository.GetDirPath(submission.ProblemID)); err != nil {
+	if err := os.Chdir(PythonSubmissionRunner.FilesRepository.GetDirPath(problem.ProblemTitle)); err != nil {
 		return nil, err
 	}
 
@@ -128,7 +129,7 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(submission 
 
 	cmdConfig := entities.CommandConfig{
 		CommandName: "py",
-		CommandArgs: []string{PY_FILE_NAME},
+		CommandArgs: []string{PyFileName},
 		TimeOut:     2,
 		StdIn:       stDin,
 		StdOut:      stdOut,

@@ -32,7 +32,6 @@ func NewJavaSubmissionRunner(repository *repositories.FilesRepository) *JavaSubm
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) RunSubmission(solutionReq *entities.SolutionRequest) ([]*entities.TestResult, error) {
-	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
 	err := javaSubmissionRunner.FilesRepository.SaveFile(solutionReq.Problem.ProblemTitle, JavaFileName, solutionReq.File)
 
 	if err != nil {
@@ -173,6 +172,7 @@ func (javaSubmissionRunner *JavaSubmissionRunner) compareOutput(pathDir, outPutF
 	defer refPath.Close()
 	p, _ := ioutil.ReadAll(refPath)
 	q, _ := ioutil.ReadAll(outputPath)
+	fmt.Println(string(q) + " " + string(p))
 	return string(q) == string(p), nil
 
 }

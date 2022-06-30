@@ -3,7 +3,7 @@ apiVersion: apps/v1
 metadata:
   name: codingtch-processing-deployment
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
         app: codingtch-processing-deployment
@@ -15,6 +15,19 @@ spec:
       containers:
         - name: codingtch-processing-deployment
           image: popirtanvlad/codingtch-processing
+          env:
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+                secretKeyRef:
+                    name: mysecret
+                    key: AWS_ACCESS_KEY_ID
+                    optional: false 
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+                secretKeyRef:
+                    name: mysecret
+                    key: AWS_SECRET_ACCESS_KEY
+                    optional: false 
           imagePullPolicy: Always
           ports:
             - containerPort: 24001

@@ -67,11 +67,6 @@ func (fileRepository *FilesRepository) SaveFile(problemDir, fileName string, sou
 		return err
 	}
 	return nil
-	//if err != nil {
-	//	logrus.WithFields(logrus.Fields{
-	//		"file path": filePath,
-	//	}).WithError(err).Debug("error trying to create the file")
-	//}
 }
 
 func (fileRepository *FilesRepository) DeleteFile(problemDir, fileName string) error {
