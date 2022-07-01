@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-	fileRepository, _ := repositories.NewFileRepository("problems")
+	fileRepository, _ := repositories.NewFileRepository("tmp")
 	dbRepo := repositories.NewPostgresSQLRepo()
 	submissionRunner := language_runners.NewSubmissionWrapper(&language_runners.SubmissionWrapperConf{
 		FileRepository: fileRepository,
@@ -18,7 +18,7 @@ func main() {
 		S3Repo: repositories.NewS3Repository(entities.AWSConfig{
 			AWSRegion:     "eu-central-1",
 			AWSBucketName: "lictestbucket1",
-			BaseLocalDir:  "problems",
+			BaseLocalDir:  "tmp",
 		}),
 		LanguageRunners: initLanguageRunners(fileRepository),
 	})

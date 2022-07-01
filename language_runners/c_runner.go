@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/udhos/equalfile"
 	"io"
 	"io/ioutil"
 	"os"
@@ -31,7 +30,6 @@ func NewCSubmissionRunner(repository *repositories.FilesRepository) *CSubmission
 }
 
 func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *entities.SolutionRequest) ([]*entities.TestResult, error) {
-	/* Salveaza fisierul primit ca parametru, care e luat din s3 si apoi da-i defer sa il stergi. Pe fisierul asta o sa rulez*/
 	err := CSubmissionRunner.FilesRepository.SaveFile(solutionReq.Problem.ProblemTitle, CFileName, solutionReq.File)
 
 	if err != nil {
@@ -108,7 +106,7 @@ func (CSubmissionRunner *CSubmissionRunner) RunTest(request *entities.RunTestReq
 		return nil, err
 	}
 
-	areTheSame, err := CSubmissionRunner.compareOutput(request.Problem.ProblemTitle, request.Test.ExpectedOutputFileName, request.OutputFileName)
+	areTheSame, err := CSubmissionRunner.compareOutput(request.Problem.ProblemTitle, request.OutputFileName, request.Test.ExpectedOutputFileName)
 
 	if err != nil {
 		return nil, err
@@ -157,10 +155,11 @@ func (CSubmissionRunner *CSubmissionRunner) executeProgram(problem entities.Prob
 
 func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *entities.SolutionRequest) (*entities.SolutionResult, error) {
 	solutionPath := CSubmissionRunner.FilesRepository.GetFilePath(request.Problem.ProblemTitle, CFileName)
+	compiledPath := CSubmissionRunner.FilesRepository.GetFilePath(request.Problem.ProblemTitle, CompiledCFileName)
 
 	cmdConfig := entities.CommandConfig{
 		CommandName: "gcc",
-		CommandArgs: []string{solutionPath, "-o", CompiledCFileName},
+		CommandArgs: []string{solutionPath, "-o", compiledPath},
 		TimeOut:     1400000,
 		StdIn:       nil,
 		StdOut:      ioutil.Discard,
@@ -170,16 +169,17 @@ func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *entities.So
 }
 
 func (CSubmissionRunner *CSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {
-	outputPath, _ := CSubmissionRunner.FilesRepository.OpenFile(pathDir, outPutFileName)
-	refPath, _ := CSubmissionRunner.FilesRepository.OpenFile(pathDir, refFileName)
-
-	defer outputPath.Close()
-	defer refPath.Close()
-
-	equal, err := equalfile.New(nil, equalfile.Options{}).CompareReader(outputPath, refPath)
+	outputPath, err := CSubmissionRunner.FilesRepository.OpenFile(pathDir, outPutFileName)
 	if err != nil {
 		return false, err
 	}
-
-	return equal, nil
+	refPath, err := CSubmissionRunner.FilesRepository.OpenFile(pathDir, refFileName)
+	if err != nil {
+		return false, err
+	}
+	defer outputPath.Close()
+	defer refPath.Close()
+	p, _ := ioutil.ReadAll(refPath)
+	q, _ := ioutil.ReadAll(outputPath)
+	return string(q) == string(p), nil
 }

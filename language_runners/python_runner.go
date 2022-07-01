@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/udhos/equalfile"
 	"io"
+	"io/ioutil"
 	"os"
 )
 
@@ -138,16 +138,19 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(problem ent
 }
 
 func (PythonSubmissionRunner *PythonSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {
-	outputPath, _ := PythonSubmissionRunner.FilesRepository.OpenFile(pathDir, outPutFileName)
-	refPath, _ := PythonSubmissionRunner.FilesRepository.OpenFile(pathDir, refFileName)
-
-	defer outputPath.Close()
-	defer refPath.Close()
-
-	equal, err := equalfile.New(nil, equalfile.Options{}).CompareReader(outputPath, refPath)
+	outputPath, err := PythonSubmissionRunner.FilesRepository.OpenFile(pathDir, outPutFileName)
 	if err != nil {
 		return false, err
 	}
 
-	return equal, nil
+	refPath, err := PythonSubmissionRunner.FilesRepository.OpenFile(pathDir, refFileName)
+	if err != nil {
+		return false, err
+	}
+
+	defer outputPath.Close()
+	defer refPath.Close()
+	p, _ := ioutil.ReadAll(refPath)
+	q, _ := ioutil.ReadAll(outputPath)
+	return string(q) == string(p), nil
 }

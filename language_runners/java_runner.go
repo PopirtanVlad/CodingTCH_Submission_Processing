@@ -165,8 +165,14 @@ func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *entit
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {
-	outputPath, _ := javaSubmissionRunner.FilesRepository.OpenFile(pathDir, outPutFileName)
-	refPath, _ := javaSubmissionRunner.FilesRepository.OpenFile(pathDir, refFileName)
+	outputPath, err := javaSubmissionRunner.FilesRepository.OpenFile(pathDir, outPutFileName)
+	if err != nil {
+		return false, err
+	}
+	refPath, err := javaSubmissionRunner.FilesRepository.OpenFile(pathDir, refFileName)
+	if err != nil {
+		return false, err
+	}
 
 	defer outputPath.Close()
 	defer refPath.Close()
