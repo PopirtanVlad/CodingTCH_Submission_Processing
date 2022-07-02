@@ -10,11 +10,12 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 const (
 	CFileName         = "Solution.c"
-	CompiledCFileName = "Solution.exe"
+	CompiledCFileName = "Solution"
 )
 
 type CSubmissionRunner struct {
@@ -45,16 +46,15 @@ func (CSubmissionRunner *CSubmissionRunner) RunSubmission(solutionReq *entities.
 
 	_, err = CSubmissionRunner.compileSolution(solutionReq)
 	if err != nil {
-		panic(err)
 		return nil, err
 	}
 
-	defer func() {
-		err := CSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Problem.ProblemTitle, CompiledCFileName)
-		if err != nil {
-			logrus.WithError(err).Warnf("Could not delete file")
-		}
-	}()
+	//defer func() {
+	//	err := CSubmissionRunner.FilesRepository.DeleteFile(solutionReq.Problem.ProblemTitle, CompiledCFileName)
+	//	if err != nil {
+	//		logrus.WithError(err).Warnf("Could not delete file")
+	//	}
+	//}()
 
 	var results []*entities.TestResult
 	for _, test := range solutionReq.Tests {
@@ -112,14 +112,21 @@ func (CSubmissionRunner *CSubmissionRunner) RunTest(request *entities.RunTestReq
 		return nil, err
 	}
 
-	return &entities.TestResult{
+	testResult := &entities.TestResult{
 		Id:           uuid.New().String(),
 		Correct:      areTheSame,
 		TimeElapsed:  testRunDetails.ExecutionTime,
 		MemoryUsed:   testRunDetails.MemoryUsage,
 		ErrorMessage: testRunDetails.StdErr,
 		SubmissionId: request.Submission.Id,
-	}, nil
+	}
+	if testResult.ErrorMessage != "" {
+		testResult.Correct = false
+	}
+	if testResult.ErrorMessage == "" && !areTheSame {
+		testResult.ErrorMessage = "Wrong Answer"
+	}
+	return testResult, nil
 }
 
 func (CSubmissionRunner *CSubmissionRunner) executeProgram(problem entities.Problem, stDin io.ReadCloser, stdOut io.WriteCloser) (*entities.SolutionResult, error) {
@@ -146,26 +153,28 @@ func (CSubmissionRunner *CSubmissionRunner) executeProgram(problem entities.Prob
 	cmdConfig := entities.CommandConfig{
 		CommandName: "./" + CompiledCFileName,
 		CommandArgs: []string{},
-		TimeOut:     2,
+		TimeOut:     problem.TimeLimit,
 		StdIn:       stDin,
 		StdOut:      stdOut,
 	}
-	return CSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig, 1, 1), nil
+	return CSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig, problem.TimeLimit, 800000), nil
 }
 
 func (CSubmissionRunner *CSubmissionRunner) compileSolution(request *entities.SolutionRequest) (*entities.SolutionResult, error) {
 	solutionPath := CSubmissionRunner.FilesRepository.GetFilePath(request.Problem.ProblemTitle, CFileName)
 	compiledPath := CSubmissionRunner.FilesRepository.GetFilePath(request.Problem.ProblemTitle, CompiledCFileName)
 
+	logrus.Infof("CompiledPath %s SolutionPath %v", compiledPath, solutionPath)
+
 	cmdConfig := entities.CommandConfig{
 		CommandName: "gcc",
 		CommandArgs: []string{solutionPath, "-o", compiledPath},
-		TimeOut:     1400000,
+		TimeOut:     time.Second * 5,
 		StdIn:       nil,
 		StdOut:      ioutil.Discard,
 	}
 
-	return executions.NewExecutionRunner(50).RunCommand(cmdConfig, 1, 1), nil
+	return executions.NewExecutionRunner(50).RunCommand(cmdConfig, time.Second*5, 600000), nil
 }
 
 func (CSubmissionRunner *CSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {

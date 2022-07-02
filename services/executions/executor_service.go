@@ -3,6 +3,7 @@ package executions
 import (
 	"Licenta_Processing_Service/entities"
 	"bytes"
+	"context"
 	"fmt"
 	_ "fmt"
 	"github.com/pkg/errors"
@@ -34,15 +35,16 @@ func (executionRunner *ExecutionRunner) RunCommand(cmdConfig entities.CommandCon
 	cmd.Stdin = cmdConfig.StdIn
 
 	if err := cmd.Start(); err != nil {
+		fmt.Println(err)
 		return &entities.SolutionResult{
-			StdErr:        "Compilation error",
+			StdErr:        "Execution error",
 			ExecutionTime: endTime,
 			MemoryUsage:   maxRecorderMemory,
 			ExitCode:      -1,
 		}
 	}
-
-	memoryChanRes, memoryChanErr := executionRunner.memoryMonitor.StartMonitor(cmd.Process.Pid, memoryLimit)
+	ctx, _ := context.WithTimeout(context.TODO(), timeLimit)
+	memoryChanRes, memoryChanErr := executionRunner.memoryMonitor.StartMonitor(ctx, cmd.Process.Pid, memoryLimit)
 	done := make(chan error, 1)
 	go func() {
 		defer close(done)
@@ -55,7 +57,6 @@ func (executionRunner *ExecutionRunner) RunCommand(cmdConfig entities.CommandCon
 			if ok {
 				if maxRecorderMemory < result {
 					maxRecorderMemory = result
-					fmt.Println(maxRecorderMemory)
 				}
 			}
 		case _, ok := <-memoryChanErr:

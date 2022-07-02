@@ -96,14 +96,21 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) RunTest(request *entities.
 		return nil, err
 	}
 
-	return &entities.TestResult{
+	testResult := &entities.TestResult{
 		Id:           uuid.New().String(),
 		Correct:      areTheSame,
 		TimeElapsed:  testRunDetails.ExecutionTime,
 		MemoryUsed:   testRunDetails.MemoryUsage,
 		ErrorMessage: testRunDetails.StdErr,
 		SubmissionId: request.Submission.Id,
-	}, nil
+	}
+	if testResult.ErrorMessage != "" {
+		testResult.Correct = false
+	}
+	if testResult.ErrorMessage == "" && !areTheSame {
+		testResult.ErrorMessage = "Wrong Answer"
+	}
+	return testResult, nil
 }
 
 func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(problem entities.Problem, stDin io.ReadCloser, stdOut io.WriteCloser) (*entities.SolutionResult, error) {
@@ -128,13 +135,13 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) executeProgram(problem ent
 	}()
 
 	cmdConfig := entities.CommandConfig{
-		CommandName: "py",
+		CommandName: "python3",
 		CommandArgs: []string{PyFileName},
-		TimeOut:     2,
+		TimeOut:     problem.TimeLimit,
 		StdIn:       stDin,
 		StdOut:      stdOut,
 	}
-	return PythonSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig, 1, 1), nil
+	return PythonSubmissionRunner.ExecutionRunner.RunCommand(cmdConfig, problem.TimeLimit, 600000), nil
 }
 
 func (PythonSubmissionRunner *PythonSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {
@@ -142,15 +149,14 @@ func (PythonSubmissionRunner *PythonSubmissionRunner) compareOutput(pathDir, out
 	if err != nil {
 		return false, err
 	}
-
 	refPath, err := PythonSubmissionRunner.FilesRepository.OpenFile(pathDir, refFileName)
 	if err != nil {
 		return false, err
 	}
-
 	defer outputPath.Close()
 	defer refPath.Close()
 	p, _ := ioutil.ReadAll(refPath)
 	q, _ := ioutil.ReadAll(outputPath)
+	logrus.Infof("Otuput: %v Ref: %v OutputFile: %v RefFile: %v", q, p, outPutFileName, refFileName)
 	return string(q) == string(p), nil
 }
