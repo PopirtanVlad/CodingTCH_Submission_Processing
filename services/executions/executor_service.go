@@ -25,6 +25,8 @@ func NewExecutionRunner(monitoringInterval time.Duration) *ExecutionRunner {
 }
 
 func (executionRunner *ExecutionRunner) RunCommand(cmdConfig entities.CommandConfig, timeLimit time.Duration, memoryLimit uint64) *entities.SolutionResult {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeLimit)
+	defer cancel()
 	cmd := exec.Command(cmdConfig.CommandName, cmdConfig.CommandArgs...)
 	startTime := time.Now()
 	var errBuff bytes.Buffer
@@ -43,8 +45,9 @@ func (executionRunner *ExecutionRunner) RunCommand(cmdConfig entities.CommandCon
 			ExitCode:      -1,
 		}
 	}
-	ctx, _ := context.WithTimeout(context.TODO(), timeLimit)
-	memoryChanRes, memoryChanErr := executionRunner.memoryMonitor.StartMonitor(ctx, cmd.Process.Pid, memoryLimit)
+	monitorCtx, monitorCancel := context.WithCancel(ctx)
+	defer monitorCancel()
+	memoryChanRes, memoryChanErr := executionRunner.memoryMonitor.StartMonitor(monitorCtx, cmd.Process.Pid, memoryLimit)
 	done := make(chan error, 1)
 	go func() {
 		defer close(done)
@@ -59,15 +62,19 @@ func (executionRunner *ExecutionRunner) RunCommand(cmdConfig entities.CommandCon
 					maxRecorderMemory = result
 				}
 			}
+		case <-ctx.Done():
+			monitorCancel()
+			_ = executionRunner.killProcess(cmd)
+			return executionRunner.returnTLE(time.Since(startTime), maxRecorderMemory)
 		case _, ok := <-memoryChanErr:
 			if ok {
-				executionRunner.memoryMonitor.started = false
+				monitorCancel()
 				_ = executionRunner.killProcess(cmd)
 				return executionRunner.returnMLE(time.Since(startTime), maxRecorderMemory)
 			}
 		case err, ok := <-done:
 			if ok {
-				executionRunner.memoryMonitor.started = false
+				monitorCancel()
 				if err == nil && endTime > timeLimit {
 					return executionRunner.returnTLE(endTime, maxRecorderMemory)
 				}
@@ -87,7 +94,7 @@ func (executionRunner *ExecutionRunner) RunCommand(cmdConfig entities.CommandCon
 						Debugf("Finished command execution")
 				}
 				return &entities.SolutionResult{
-					StdErr:        "",
+					StdErr:        errBuff.String(),
 					ExecutionTime: endTime,
 					MemoryUsage:   maxRecorderMemory,
 					ExitCode:      exitCode,

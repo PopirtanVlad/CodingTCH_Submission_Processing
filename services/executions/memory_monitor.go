@@ -3,49 +3,48 @@ package executions
 import (
 	"bufio"
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // MemoryMonitor monitors memory usage of a process
 type MemoryMonitor struct {
 	monitorInterval time.Duration
-	started         bool
 }
 
 // NewMemoryMonitor returns a new MemoryMonitor object
 func NewMemoryMonitor(interval time.Duration) *MemoryMonitor {
 	return &MemoryMonitor{
 		monitorInterval: interval,
-		started:         true,
 	}
 }
 
 // StartMonitor starts monitoring memory usage of a process by pid and sends
 // an error through a channel in case the maxMemory threshold is exceeded
-func (m *MemoryMonitor) StartMonitor(pid int, maxMemory uint64) (<-chan uint64, <-chan error) {
+func (m *MemoryMonitor) StartMonitor(ctx context.Context, pid int, maxMemory uint64) (<-chan uint64, <-chan error) {
 	memoryChanRes := make(chan uint64, 1)
 	memoryChanErr := make(chan error, 1)
-	memoryResults := m.checkMemoryAtInterval(pid)
+	memoryResults := m.checkMemoryAtInterval(ctx, pid)
 	go func() {
 		defer close(memoryChanErr)
 		errSent := false
 		for {
-			if !m.started {
+			select {
+			case <-ctx.Done():
 				return
-			}
-
-			result, ok := <-memoryResults
-			if ok {
-				memoryChanRes <- result
-				if result > maxMemory {
-					if len(memoryChanErr) < cap(memoryChanErr) && !errSent {
-						memoryChanErr <- errors.New("memory limit exceeded")
-						errSent = true
+			case result, ok := <-memoryResults:
+				if ok {
+					memoryChanRes <- result
+					if result > maxMemory {
+						if len(memoryChanErr) < cap(memoryChanErr) && !errSent {
+							memoryChanErr <- errors.New("memory limit exceeded")
+							errSent = true
+						}
 					}
 				}
 			}
@@ -54,7 +53,7 @@ func (m *MemoryMonitor) StartMonitor(pid int, maxMemory uint64) (<-chan uint64, 
 	return memoryChanRes, memoryChanErr
 }
 
-func (m *MemoryMonitor) checkMemoryAtInterval(pid int) <-chan uint64 {
+func (m *MemoryMonitor) checkMemoryAtInterval(ctx context.Context, pid int) <-chan uint64 {
 	resultsChan := make(chan uint64, 1)
 	ticker := time.NewTicker(m.monitorInterval)
 
@@ -71,19 +70,21 @@ func (m *MemoryMonitor) checkMemoryAtInterval(pid int) <-chan uint64 {
 	go func() {
 		defer close(resultsChan)
 		for {
-
-			if !m.started {
+			select {
+			case <-ctx.Done():
+				logrus.Debugf("memory monitor stopped for pid %d", pid)
 				ticker.Stop()
 				return
-			}
-			usedMemory, err := m.getMemoryForProcess(pid)
-			logrus.Debugf("checking memory usage for pid %d %d KB", pid, usedMemory)
-			if err != nil {
-				logrus.WithError(err).
-					Debugf("could not check memory for pid %d", pid)
-			}
-			if len(resultsChan) < cap(resultsChan) {
-				resultsChan <- usedMemory
+			case <-ticker.C:
+				usedMemory, err := m.getMemoryForProcess(pid)
+				logrus.Debugf("checking memory usage for pid %d %d KB", pid, usedMemory)
+				if err != nil {
+					logrus.WithError(err).
+						Debugf("could not check memory for pid %d", pid)
+				}
+				if len(resultsChan) < cap(resultsChan) {
+					resultsChan <- usedMemory
+				}
 			}
 		}
 	}()
