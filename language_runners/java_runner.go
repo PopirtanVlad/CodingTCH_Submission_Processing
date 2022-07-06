@@ -164,12 +164,12 @@ func (javaSubmissionRunner *JavaSubmissionRunner) compileSolution(request *entit
 	cmdConfig := entities.CommandConfig{
 		CommandName: "javac",
 		CommandArgs: []string{solutionPath},
-		TimeOut:     3 * time.Second,
+		TimeOut:     6 * time.Second,
 		StdIn:       nil,
 		StdOut:      ioutil.Discard,
 	}
 
-	return executions.NewExecutionRunner(50).RunCommand(cmdConfig, 3*time.Second, 100000), nil
+	return executions.NewExecutionRunner(50).RunCommand(cmdConfig, 6*time.Second, 100000), nil
 }
 
 func (javaSubmissionRunner *JavaSubmissionRunner) compareOutput(pathDir, outPutFileName, refFileName string) (bool, error) {

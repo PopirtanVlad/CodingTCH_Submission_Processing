@@ -12,20 +12,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// MemoryMonitor monitors memory usage of a process
 type MemoryMonitor struct {
 	monitorInterval time.Duration
 }
 
-// NewMemoryMonitor returns a new MemoryMonitor object
 func NewMemoryMonitor(interval time.Duration) *MemoryMonitor {
 	return &MemoryMonitor{
 		monitorInterval: interval,
 	}
 }
 
-// StartMonitor starts monitoring memory usage of a process by pid and sends
-// an error through a channel in case the maxMemory threshold is exceeded
 func (m *MemoryMonitor) StartMonitor(ctx context.Context, pid int, maxMemory uint64) (<-chan uint64, <-chan error) {
 	memoryChanRes := make(chan uint64, 1)
 	memoryChanErr := make(chan error, 1)
